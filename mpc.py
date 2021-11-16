@@ -21,29 +21,28 @@ H = []
 for i in range(N):
     temp_A = np.linalg.matrix_power(A, i)
     H.append(temp_A)
+
 K = []
-#行
 for i in range(N):
-    #列
-    val = []
+    temp_val = [B, B, B, B, B, B, B, B, B, B]
     for t in range(N):
         temp_val_A = np.linalg.matrix_power(A, i)
-        if(i >= t):
-            temp_val = temp_val_A * B
+        if(i == t):
+            temp_val[t] = B
+        elif(i > t):
+            temp_val[t] = temp_val_A * B
         else:
-            temp_val = temp_val_A
-        val.append(temp_val)
-
+            zero = np.array([[0], [0]])
+            temp_val[t] = zero
+    val = np.array([[temp_val[0], temp_val[1], temp_val[2], temp_val[3], temp_val[4], temp_val[5], temp_val[6], temp_val[7], temp_val[8], temp_val[9]]])
+    print(val)
     K.append(val)
 
 I = np.eye(2)
 bmQ = np.array([[Q, I, I], [I, Q, I], [I, I, Q]])
 bmR = np.array([[R, I, I], [I, R, I], [I, I, R]])
 
-print(bmQ)
-
 Phi = 2 * (np.transpose(K) * bmQ * K + bmR)
-print(Phi)
 Gamma = 2 * np.transpose(x) * np.transpose(H) * bmQ * K
 
 U = cvxpy.Variable(4)
