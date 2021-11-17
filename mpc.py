@@ -30,22 +30,25 @@ for i in range(N):
         if(i == t):
             temp_val[t] = B
         elif(i > t):
-            temp_val[t] = temp_val_A * B
+            temp_val[t] = np.dot(temp_val_A, B)
         else:
             zero = np.array([[0], [0]])
             temp_val[t] = zero
+   
     val = np.array([[temp_val[0], temp_val[1], temp_val[2], temp_val[3], temp_val[4], temp_val[5], temp_val[6], temp_val[7], temp_val[8], temp_val[9]]])
-    print(val)
+    #print(val)
     K.append(val)
 
 I = np.eye(2)
 bmQ = np.array([[Q, I, I], [I, Q, I], [I, I, Q]])
 bmR = np.array([[R, I, I], [I, R, I], [I, I, R]])
 
-Phi = 2 * (np.transpose(K) * bmQ * K + bmR)
-Gamma = 2 * np.transpose(x) * np.transpose(H) * bmQ * K
+print(len(K))
+print(len(bmR))
+Phi = 2 * (np.dot(np.transpose(K) * np.dot(bmQ * K)) + bmR)
+Gamma = 2 * np.dot(np.transpose(x) * np.dot(np.transpose(H) * np.dot(bmQ * K)))
 
 U = cvxpy.Variable(4)
-objective = cvxpy.sum_squares(0.5 * U.transpose * Phi * U + Gamma * U)
+objective = cvxpy.sum_squares(0.5 * np.dot(np.transpose(U) * np.dot(Phi * U)) + np.dot(Gamma * U))
 prob = cvxpy.Problem(cvxpy.Minimize(objective))
 prob.solve()

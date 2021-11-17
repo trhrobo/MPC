@@ -1,18 +1,27 @@
-import cvxpy
-import numpy
+import numpy as np
 
-m = 10
-n = 5
-numpy.random.seed(1)
-A = numpy.random.randn(m, n)
-b = numpy.random.randn(m)
+B = np.array([[0], [0]])
 
-x = cvxpy.Variable(n)
-objective = cvxpy.Minimize(cvxpy.sum_squares(A * x - b))
-constraints = [0 <= x, x <= 1]
-prob = cvxpy.Problem(objective, constraints)
+K = []
 
-result = prob.solve()
-print("optimal parameter:\n", x.value)
-print("Lagrange parameter\n", constraints[0].dual_value)
-print("status:" + prob.status)
+temp_val = [B, B, B, B]
+
+temp0 = np.array([[1], [1]])
+temp1 = np.array([[2], [2]])
+
+temp_val[0] = temp0
+temp_val[1] = temp0
+temp_val[2] = temp1
+temp_val[3] = temp1
+
+val = np.array([[temp_val[0], temp_val[1]]])
+
+print(val)
+
+K.append(val)
+
+val = np.array([[temp_val[2], temp_val[3]]])
+K.append(val)
+
+print("----")
+print(K)

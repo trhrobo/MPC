@@ -1,13 +1,12 @@
 import numpy as np
 
-a = ([])
-print(a)
-b = np.array([[0, 1], 
-              [2, 3]])
-print(b)
-a.append(b)
-print(a)
-c = np.array([[4, 5], 
-              [6, 7]])
-a.append(c)
-print(a)
+A = np.array([[1, 1], [0, 1]])
+B = np.array([[0.5], [1]])
+
+ans = np.dot(A, B)
+
+print(ans)
+
+ans *= 2
+
+print(ans)
