@@ -39,9 +39,28 @@ for i in range(N):
     #print(val)
     K.append(val)
 
-I = np.eye(2)
-bmQ = np.array([[Q, I, I], [I, Q, I], [I, I, Q]])
-bmR = np.array([[R, I, I], [I, R, I], [I, I, R]])
+zero = np.zeros(2)
+bmQ = np.array([[Q, I, I, I, I, I, I, I, I, I],
+                [I, Q, I, I, I, I, I, I, I, I],
+                [I, I, Q, I, I, I, I, I, I, I],
+                [I, I, I, Q, I, I, I, I, I, I],
+                [I, I, I, I, Q, I, I, I, I, I],
+                [I, I, I, I, I, Q, I, I, I, I],
+                [I, I, I, I, I, I, Q, I, I, I],
+                [I, I, I, I, I, I, I, Q, I, I],
+                [I, I, I, I, I, I, I, I, Q, I],
+                [I, I, I, I, I, I, I, I, I, Q]])
+
+bmR = np.array([[R, I, I, I, I, I, I, I, I, I],
+                [I, R, I, I, I, I, I, I, I, I],
+                [I, I, R, I, I, I, I, I, I, I],
+                [I, I, I, R, I, I, I, I, I, I],
+                [I, I, I, I, R, I, I, I, I, I],
+                [I, I, I, I, I, R, I, I, I, I],
+                [I, I, I, I, I, I, R, I, I, I],
+                [I, I, I, I, I, I, I, R, I, I],
+                [I, I, I, I, I, I, I, I, R, I],
+                [I, I, I, I, I, I, I, I, I, R]])
 
 print(len(K))
 print(len(bmR))
