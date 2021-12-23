@@ -17,10 +17,17 @@ R = np.array([[1, 1], [1, 1]])
 
 N = 10
 
-H = []
+#H設定
+#サイズの確認
+H = A
+Adi = A
 for i in range(N):
-    temp_A = np.linalg.matrix_power(A, i)
-    H.append(temp_A)
+    Adi = np.dot(Adi, A)
+    H = np.append(H, Adi)
+#サイズの確認
+H = np.reshape(H, (2*N, 2))
+    #temp_A = np.linalg.matrix_power(A, i)
+    #H.append(temp_A)
 
 K = []
 for i in range(N):
@@ -39,35 +46,27 @@ for i in range(N):
     #print(val)
     K.append(val)
 
+#サイズ確認する
+#二次計画問題
 zero = np.zeros(2)
-bmQ = np.array([[Q, I, I, I, I, I, I, I, I, I],
-                [I, Q, I, I, I, I, I, I, I, I],
-                [I, I, Q, I, I, I, I, I, I, I],
-                [I, I, I, Q, I, I, I, I, I, I],
-                [I, I, I, I, Q, I, I, I, I, I],
-                [I, I, I, I, I, Q, I, I, I, I],
-                [I, I, I, I, I, I, Q, I, I, I],
-                [I, I, I, I, I, I, I, Q, I, I],
-                [I, I, I, I, I, I, I, I, Q, I],
-                [I, I, I, I, I, I, I, I, I, Q]])
-
-bmR = np.array([[R, I, I, I, I, I, I, I, I, I],
-                [I, R, I, I, I, I, I, I, I, I],
-                [I, I, R, I, I, I, I, I, I, I],
-                [I, I, I, R, I, I, I, I, I, I],
-                [I, I, I, I, R, I, I, I, I, I],
-                [I, I, I, I, I, R, I, I, I, I],
-                [I, I, I, I, I, I, R, I, I, I],
-                [I, I, I, I, I, I, I, R, I, I],
-                [I, I, I, I, I, I, I, I, R, I],
-                [I, I, I, I, I, I, I, I, I, R]])
-
-print(len(K))
-print(len(bmR))
+bmQ = np.zeros((2*N, 2*N))
+bmR = np.zeros((N, N))
+for i in range(2*N):
+    bmQ[i][i] = 1
+for i in range(N):
+    bmR[i][i] = 1
+    
 Phi = 2 * (np.dot(np.transpose(K) * np.dot(bmQ * K)) + bmR)
 Gamma = 2 * np.dot(np.transpose(x) * np.dot(np.transpose(H) * np.dot(bmQ * K)))
 
-U = cvxpy.Variable(4)
-objective = cvxpy.sum_squares(0.5 * np.dot(np.transpose(U) * np.dot(Phi * U)) + np.dot(Gamma * U))
-prob = cvxpy.Problem(cvxpy.Minimize(objective))
-prob.solve()
+
+Time = 100
+for i in range(Time):
+    #拘束条件無し
+    #U = cvxpy.Variable(4)
+    objective = cvxpy.Minimize(0.5*cvxpy.quad_form(x, P)+gm.T@x)
+    problem = cvxpy.Problem(objective)
+    sol = problem.solve()    
+    
+#グラフ表示
+
