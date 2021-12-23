@@ -18,10 +18,26 @@ constexpr double error = 0.00001;
 constexpr double dt = 0.001;
 //予測ステップ
 constexpr int N_step = 30;
+constexpr double zeta = 0.1;
+constexpr double h = 0.001;
+
+Eigen::Matrix dX(double _x1, double _x2, double _u){
+    Eigen::Matrix<double, 2, 1> _dX;
+    _dX << _x2,
+            (1-std::pow(_x1, 2)-std::pow(_x2, 2))*_x2-_x1+_u;
+    return _dX;
+}
+void Hamilton()
+void GMRES(double A, double b){
+    //Ax = bの連立一次方程式xについてを解く
+}
 
 int main(){
-    double t = 0;
     //モデル
+    dX = Matrix<double , 2, 1>;
+
+    //初期値設定
+    double t = 0;
     //1
     while(1){
         //2
@@ -33,6 +49,8 @@ int main(){
         //lamda_を求める
         //5
         //gmres法を用いてdUを求める
+        //Fを作る
+        F = createF();
         dU(t) = GMRES();
         U(t + dt) = U(t) + dU(t) * dt
         //6
