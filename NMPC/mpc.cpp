@@ -21,7 +21,7 @@ constexpr int N_step = 30;
 constexpr double zeta = 0.1;
 constexpr double h = 0.001;
 
-Eigen::Matrix dX(double _x1, double _x2, double _u){
+Eigen::Matrix caldX(double _x1, double _x2, double _u){
     Eigen::Matrix<double, 2, 1> _dX;
     _dX << _x2,
             (1-std::pow(_x1, 2)-std::pow(_x2, 2))*_x2-_x1+_u;
@@ -34,11 +34,19 @@ void GMRES(double A, double b){
 
 int main(){
     //モデル
-    dX = Matrix<double , 2, 1>;
+    Matrix<double, 2, 1> dX = caldX();
 
     //初期値設定
     double t = 0;
+    constexpr double x1 = 10;
+    constexpr double x2 = 10;
     //1
+    //X(0)を測定する
+    Eigen::Matrix<double, 2, 1> X;
+    X << x1,
+         x2;
+    //U(0)を決定する
+    Eigen::Matrix<double, N_step, 1>;
     while(1){
         //2
         u(t) = u_(0, t);

@@ -88,6 +88,7 @@ class NMPCCGMRES(Controller):
         # compute Fxt
         x_dot = self.model.x_dot(curr_x, sol[0])
         dx = x_dot * self.delta
+        ##Fxtは何?
         Fxt = self._compute_f(curr_x+dx, sol, g_xs, dummy_sol, raw).flatten()
 
         # compute F
