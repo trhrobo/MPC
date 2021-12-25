@@ -10,26 +10,27 @@
 #include "/usr/include/eigen3/Eigen/Sparse"
 #include "/usr/include/eigen3/Eigen/Core"
 #include "/usr/include/eigen3/Eigen/LU"
-#include "matplotlibcpp.h"
+//#include "matplotlibcpp.h"
 
-Eigen::Matrix<double, 2, 1> calcdX(double _x1, double _x2, double _u){
-    Eigen::Matrix<double, 2, 1> dX;
-    dX << _x2,
-            (1-std::pow(_x1, 2)-std::pow(_x2, 2))*_x2-_x1+_u;
-    return dX;
-}
+//namespace plt = matplotlibcpp;
 
-Eigen::Matirix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, double _u, double _t){
+/*
+非線形最適制御入門(例8.1)
+*/
+
+Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, double _u, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
     double x1 = _X(0, 0);
     double x2 = _X(1, 0);
     model_F << x2,
          (1-std::pow(x1, 2)-std::pow(x2, 2))*x2-x1+_u;
-    return F;
+    return model_F;
 }
 
-Eigen::Matrix<double, 2, 1> caclRphiRx(double _x1_f, double _x2_f){
+Eigen::Matrix<double, 2, 1> caclRphiRx(Eigen::Matrix<double, 2, 1> _X, double _u, Eigen::Matrix<double, 2, 1> _lamda, double _t){
     Eigen::Matrix<double, 2, 1> RphiRx;
+    double _x1_f = _X(0, 0);
+    double _x2_f = _X(1, 0);
     RphiRx << _x1_f,
               _x2_f;
     return RphiRx;
@@ -42,9 +43,6 @@ Eigen::Matrix<double, 30, 1> GMRES(double A, double b){
 }
 
 int main(){
-    //モデル
-    Matrix<double, 2, 1> dX = calcdX();
-
     /*各種定数設定*/
     //目標値に対する誤差
     constexpr double error=0.00001;
@@ -85,10 +83,10 @@ int main(){
                         X_(0, 1);
         for(int i=1; i <= (N_step-1); i++){
             Eigen::Matrix<double, 2, 1> temp_X_;
-            temp_X_=temp_prev_X+calcF(temp_prev_X_, U(i, 0), t+i*dtau)*dtau;
+            temp_X_=prev_temp_X_+calcModelF(prev_temp_X_, U(i, 0), t+i*dtau)*dtau;
             X_(i, 0)=temp_X_(0, 0);
             X_(i, 1)=temp_X_(1, 0);
-            temp_prev_X_=temp_X_;
+            prev_temp_X_=temp_X_;
         }
         //4
         //lamda_を求める
@@ -102,7 +100,8 @@ int main(){
                             Lamda_(N-1, 1);
         for(int i=N-1; i > 0; --i){
             Eigen::Matrix<double, 2, 1> temp_Lamda_;
-            temp_Lamda_=prev_temp_Lamda_+RphiRx()*dtau;
+            //FIXME:X_の行列を転置行列にすればいい
+            temp_Lamda_=prev_temp_Lamda_+caclRphiRx(X_[i], U[i], prev_temp_Lamda_, t+i*dtau)*dtau;
             Lamda_(i, 0)=temp_Lamda_(0, 0);
             Lamda_(i, 1)=temp_Lamda_(1, 0);
         }
@@ -117,7 +116,7 @@ int main(){
         //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
         double temp_x1=X(0, 0);
         double temp_x2=X(0, 1);
-        X+=calcdX(temp_x1, temp_x2, u)*dt;
+        X+=calcModelF(temp_x1, temp_x2, u)*dt;
 
         //7
         t=t+dt
@@ -125,5 +124,4 @@ int main(){
             break;
         }
     }
-    Animation(x);
 }
