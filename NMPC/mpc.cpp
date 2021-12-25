@@ -35,8 +35,10 @@ Eigen::Matrix<double, 2, 1> caclRphiRx(double _x1_f, double _x2_f){
     return RphiRx;
 }
 
-void GMRES(double A, double b){
+Eigen::Matrix<double, 30, 1> GMRES(double A, double b){
     //Ax = bの連立一次方程式xについてを解く
+    Eigen::Matrix<double, 30, 1> dU;
+
 }
 
 int main(){
@@ -100,7 +102,7 @@ int main(){
                             Lamda_(N-1, 1);
         for(int i=N-1; i > 0; --i){
             Eigen::Matrix<double, 2, 1> temp_Lamda_;
-            temp_Lamda_= prev_temp_Lamda_+RphiRx()*dtau;
+            temp_Lamda_=prev_temp_Lamda_+RphiRx()*dtau;
             Lamda_(i, 0)=temp_Lamda_(0, 0);
             Lamda_(i, 1)=temp_Lamda_(1, 0);
         }
@@ -111,7 +113,12 @@ int main(){
         dU(t)=GMRES();
         U(t+dt)=U(t)+dU(t)*dt;
         //6
-        x(t+dt);
+        //x(t)=x(t+dt)でxの更新
+        //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
+        double temp_x1=X(0, 0);
+        double temp_x2=X(0, 1);
+        X+=calcdX(temp_x1, temp_x2, u)*dt;
+
         //7
         t=t+dt
         if((goal-val) < error){
