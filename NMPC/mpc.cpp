@@ -111,6 +111,16 @@ int main(){
         F=createF();
         dU(t)=GMRES();
         U(t+dt)=U(t)+dU(t)*dt;
+        //Ax=bを解く
+        Eigen::Matrix<double, 30, 1> gmres_X;
+        Eigen::Matrix<double, 30, 1> gmres_G;
+        Eigen::Matrix<double, 30, 1> gmres_X0=Eigen::MatrixXd::Zero(30, 1);
+        //初期残差を測定
+        Eigen::Matrix<double, 30, 1> gmres_R0=Eigen::MatrixXd::Zero(30, 1);
+        //gmres_r0を正規化
+        gmres_X[0]=gmres_X0/gmres_X0.norm();
+        
+
         //6
         //x(t)=x(t+dt)でxの更新
         //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
