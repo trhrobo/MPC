@@ -111,16 +111,58 @@ int main(){
         F=createF();
         dU(t)=GMRES();
         U(t+dt)=U(t)+dU(t)*dt;
+        /*----------------------------------------------------------------
+        ------------------------------------------------------------------*/
         //Ax=bを解く
+        constexpr double m=30;
         Eigen::Matrix<double, 30, 1> gmres_X;
+        std::array<double, 30> gmres_V;
         Eigen::Matrix<double, 30, 1> gmres_G;
         Eigen::Matrix<double, 30, 1> gmres_X0=Eigen::MatrixXd::Zero(30, 1);
         //初期残差を測定
         Eigen::Matrix<double, 30, 1> gmres_R0=Eigen::MatrixXd::Zero(30, 1);
         //gmres_r0を正規化
+        //1
+        //FIXME:行列に割り算はない
         gmres_X[0]=gmres_X0/gmres_X0.norm();
-        
-
+        //2
+        //初期残差の測定
+        gmres_R0=b-A*gmres_X0;
+        //FIXME:行列に割り算はない
+        gmres_V[1]=gmres_R0/gmres_R0.norm();
+        //3
+        gmres_G[0]=gmres_R0.norm();
+        //4
+        for(int j=1; j<=m; ++j){
+            //5
+            //6
+            //7
+            //8
+            //9
+            //10
+            for(int i=0; i<=(j-1); ++i){
+                //11
+                //12
+                //13
+                //14
+                //15
+            }
+            //16
+            //17
+            //18
+            //19
+            //20
+            //21
+        }
+        //22
+        //23
+        //24
+        //25
+        //26
+        //27
+        //28
+        /*----------------------------------------------------------------
+        ------------------------------------------------------------------*/
         //6
         //x(t)=x(t+dt)でxの更新
         //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
