@@ -35,13 +35,14 @@ Eigen::Matrix<double, 2, 1> caclRphiRx(Eigen::Matrix<double, 2, 1> _X, double _u
               _x2_f;
     return RphiRx;
 }
-
-Eigen::Matrix<double, 30, 1> GMRES(double A, double b){
-    //Ax = bの連立一次方程式xについてを解く
-    Eigen::Matrix<double, 30, 1> dU;
-
+double dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, double _lamda_){
+    //FIXME:手計算する
+    return ;
 }
-
+double Constraint(double _x_, double _u_, double _lamda_){
+    //FIXME:手計算する
+    return ;
+}
 int main(){
     /*各種定数設定*/
     //目標値に対する誤差
@@ -108,9 +109,13 @@ int main(){
         //5
         //gmres法を用いてdUを求める
         //Fを作る
-        F=createF();
-        dU(t)=GMRES();
-        U(t+dt)=U(t)+dU(t)*dt;
+        Eigen::Matrix<double, 2*N_step, 1> F;
+        for(int i=0; i<N_step; i+=2){
+            //FIXME:サイズが違う
+            F(i, 0)=dHdu();
+            F(i+1, 0)=Constraint();
+        }
+        Eigen::Matrix<double, N_step, 1> dU=Eigen::MatrixXd::Ones(N_step, 1);
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
         //Ax=bを解く
@@ -211,6 +216,7 @@ int main(){
         gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
+        U=dU*dt;
         //6
         //x(t)=x(t+dt)でxの更新
         //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
