@@ -114,53 +114,56 @@ int main(){
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
         //Ax=bを解く
+        //mはリスタートパラメータ
         constexpr double m=30;
-        Eigen::Matrix<double, 30, 1> gmres_X;
-        std::array<double, 30> gmres_V;
-        Eigen::Matrix<double, 30, 1> gmres_G;
-        Eigen::Matrix<double, 30, 1> gmres_X0=Eigen::MatrixXd::Zero(30, 1);
-        //初期残差を測定
-        Eigen::Matrix<double, 30, 1> gmres_R0=Eigen::MatrixXd::Zero(30, 1);
-        //gmres_r0を正規化
-        //1
-        //FIXME:行列に割り算はない
-        gmres_X[0]=gmres_X0/gmres_X0.norm();
-        //2
-        //初期残差の測定
+        //FIXME:nを求める必要がある
+        constexpr double n=40;
+        //num_solutionは解の個数
+        constexpr double num_solution=60;
+        Eigen::Matrix<double, n, m> A;
+        Eigen::Matrix<double, n, 1> b;
+        Eigen::Matrix<double, num_solution, 1> gmres_X;
+        Eigen::Matrix<double, num_solution, 1> gmres_X0=Eigen::MatrixXd::Zero(num_solution, 1);
+        Eigen::Matrix<double, n, 1> gmres_V[m];
+        Eigen::Matrix<double, n, m> gmres_Vm;
+        Eigen::Matrix<double, n, 1> gmres_R0;
         gmres_R0=b-A*gmres_X0;
-        //FIXME:行列に割り算はない
+        gmres_V[0]=gmres_R0.normalized();
+
+        gmres_X[0]=gmres_X0/gmres_X0.norm();
+        gmres_R0=b-A*gmres_X0;
         gmres_V[1]=gmres_R0/gmres_R0.norm();
-        //3
         gmres_G[0]=gmres_R0.norm();
-        //4
+        double h[30][30]{}; 
+        double c[30]{};
+        double s[30]{}; 
         for(int j=1; j<=m; ++j){
-            //5
-            //6
-            //7
-            //8
-            //9
-            //10
-            for(int i=0; i<=(j-1); ++i){
-                //11
-                //12
-                //13
-                //14
-                //15
+            //Arnoldi法を行う
+            for(int i=1; i<=j; ++i){
+                h[i][j]=A*v[j].dot(v[i]);
             }
-            //16
-            //17
-            //18
-            //19
-            //20
-            //21
+            double temp_sigma;
+            for(int i=1; i<=j; ++i){
+                temp_sigma=h[i][j]*v[i];
+            }
+            _v[j+1]=A*v[j] - temp_signa;
+            h[j+1][j]=_v[j+1].norm();
+            v[j+1]=_v[j+1]/h[j+1][j];
+            //FIXME:(0)はどうしたらいい?
+            gmres_R[1][j]=h[1][j];
+            for(int i=1; i<=(j-1); ++i){
+                //FIXME:(i-1)はどうしたらいい?
+                double temp1=c[i]*gmres_R[i][j]+s[i]*h[i+1][j];
+                double temp2=-1*s[i]*gmres_R[i][j]+c[i]*h[i+1][j];
+                gmres_R[i][j]=temp1;
+                gmres_R[i+1][j]=temp2;
+            }
+            c[j]=gmres_R[j][j]/std::sqrt(std::pow(gmres_R[j][j], 2)+std::pow(h[j+1][j], 2));
+            s[j]=h[j+1][j]/std::sqrt(std::pow(gmres_R[j][j], 2)+std::pow(h[j+1][j], 2));
+            gmres_R[j][j]=c[j]*gmres_R[j][j]+s[j]*h[j+1][j];
         }
-        //22
-        //23
-        //24
-        //25
-        //26
-        //27
-        //28
+        Eigen::Matrix<double, 30> Ym=Rm.colPivHouseholderQr().solve(Gm);
+        Eigen::Matrix<double, 30> Xm=X0+Vm*Ym;
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
         //6
