@@ -120,9 +120,11 @@ int main(){
         constexpr int n=40;
         //num_solutionは解の個数
         constexpr double num_solution=60;
+        //FIXME:サイズを間違えている可能性がある
         Eigen::Matrix<double, n, m> A;
         Eigen::Matrix<double, n, 1> b;
         Eigen::Matrix<double, num_solution, 1> gmres_Xm;
+        Eigen::Matrix<double, m, 1> gmres_Ym;
         Eigen::Matrix<double, num_solution, 1> gmres_X0=Eigen::MatrixXd::Zero(num_solution, 1);
         Eigen::Matrix<double, n, 1> gmres_V[m];
         Eigen::Matrix<double, n, m> gmres_Vm;
@@ -147,40 +149,66 @@ int main(){
         }
         for(int i=0; i<n; ++i){
             for(int k=0; k<m; ++k){
-                //FIXME:代入を間違えている
-                gmres_Vm[i][k]=gmres_V[i][k];
+                //FIXME:代入を間違えているかも
+                gmres_Vm(i, k)=gmres_V[i][k];
             }
         }
         //最小化問題を解く
+        //FIXME:c, s, rを求める必要がある
         double c[m]{};
         double s[m]{}; 
-        for(int j=1; j<=m; ++j){
-            //Arnoldi法を行う
-            for(int i=1; i<=j; ++i){
-                h[i][j]=A*v[j].dot(v[i]);
+        double r[m]{};
+        //Rmを作る
+        Eigen::Matrix<double, m, m> Hm;
+        Eigen::Matrix<double, m+1, m> _Hm;
+        for(int i=0; i<m; ++i){
+            for(int k=0; k<m; ++k){
+                //FIXME:代入を間違えているかも
+                Hm(i, k)=h[i][k];
             }
-            double temp_sigma;
-            for(int i=1; i<=j; ++i){
-                temp_sigma=h[i][j]*v[i];
-            }
-            _v[j+1]=A*v[j] - temp_signa;
-            h[j+1][j]=_v[j+1].norm();
-            v[j+1]=_v[j+1]/h[j+1][j];
-            //FIXME:(0)はどうしたらいい?
-            gmres_R[1][j]=h[1][j];
-            for(int i=1; i<=(j-1); ++i){
-                //FIXME:(i-1)はどうしたらいい?
-                double temp1=c[i]*gmres_R[i][j]+s[i]*h[i+1][j];
-                double temp2=-1*s[i]*gmres_R[i][j]+c[i]*h[i+1][j];
-                gmres_R[i][j]=temp1;
-                gmres_R[i+1][j]=temp2;
-            }
-            c[j]=gmres_R[j][j]/std::sqrt(std::pow(gmres_R[j][j], 2)+std::pow(h[j+1][j], 2));
-            s[j]=h[j+1][j]/std::sqrt(std::pow(gmres_R[j][j], 2)+std::pow(h[j+1][j], 2));
-            gmres_R[j][j]=c[j]*gmres_R[j][j]+s[j]*h[j+1][j];
         }
-        Eigen::Matrix<double, 30> Ym=Rm.colPivHouseholderQr().solve(Gm);
-        Eigen::Matrix<double, 30> Xm=X0+Vm*Ym;
+        Eigen::Matrix<double, 1, m> temp_Hm=Eigen::MatrixXd::Zero(1, m);
+        //FIXME:代入法を間違えているかも
+        temp_Hm(0, m-1)=h[m][m-1];
+        _Hm = (Hm,
+               temp_Hm);
+        //Givens回転を用いて_Hmを上三角行列に変換する
+        Eigen::Matrix<double, m+1, m+1> Qm=Eigen::MatrixXd::Identity(m+1, m+1);
+        for(int i=0; i<m; i++){
+            Eigen::Matrix<double, m+1, m+1> Omega=Eigen::MatrixXd::Identity(m+1, m+1);
+            //TODO:回転行列をその部分に入れるようにした方が綺麗
+            Omega(i, i)=c[i];
+            Omega(i+1, i)=-1*s[i];
+            Omega(i, i+1)=s[i];
+            Omega(i+1, i+1)=c[i];
+            Qm*=Omega;
+        }
+        Eigen::Matrix<double, m+1, m> _Rm;
+        _Rm=Qm*_Hm;
+        //FIXME:_Rmの最下段を取り除いたものをRmとする必要がある
+        Eigen::Matrix<double, m, m> Rm=_Rm;
+        //gmを作る
+        double g[m]{};
+        Eigen::Matrix<double, m, 1> Gm;
+        for(int i=0; i<m; i++){
+            double temp_prod_s=1;
+            for(int k=0; k<(i-1); k++){
+                temp_prod_s*=s[k];
+            }
+            //FIXME:std::pow(-1, i-1)を偶数,奇数で判別した方が速くなる
+            g[i]=std::pow(-1, i-1)*gmres_R0.norm()*c[i]*temp_sigma_s;
+            Gm(0, i)=g[i];
+        }
+        //後退代入によってRm*Ym=Gmを解く
+        double temp_sigma_back;
+        for(int i=m; i>0; --i){
+            double temp_sigma_back=0;
+            for(int k=0; k<(m-k); ++k){
+                temp_sigma_back+=Gm[k]*gmres_Ym[k];
+            }
+            gmres_Ym[i]=(Gm[i]-temp_sigma_back)/Rm(i, i);
+        }
+        gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
         //6
