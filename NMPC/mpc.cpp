@@ -77,7 +77,7 @@ Eigen::Matrix<double, n, 1> calAv(Eigen::Matrix<double, n, 1> _V){
     return ans;
 }
 Eigen::Matrix<double, n, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
-    Eigen::Matrix<double, n, m> ans=-1*zata*calF()-(calF()-calF())/h;
+    Eigen::Matrix<double, n, m> ans=-1*zeta*calF()-(calF()-calF())/h;
     return ans;
 }
 int main(){
@@ -144,30 +144,26 @@ int main(){
         //num_solutionは解の個数
         constexpr double num_solution=60;
         //FIXME:サイズを間違えている可能性がある
-        Eigen::Matrix<double, n, m> A=calA();
-        Eigen::Matrix<double, n, 1> b=calb();
         Eigen::Matrix<double, num_solution, 1> gmres_Xm;
         Eigen::Matrix<double, m, 1> gmres_Ym;
         Eigen::Matrix<double, num_solution, 1> gmres_X0=Eigen::MatrixXd::Zero(num_solution, 1);
         Eigen::Matrix<double, n, 1> gmres_V[m];
         Eigen::Matrix<double, n, m> gmres_Vm;
         Eigen::Matrix<double, n, 1> gmres_R0;
-        gmres_R0=b-A*gmres_X0;
+        //初期残差gmres_R0を求める
+        gmres_R0=calb()-calAv();
         gmres_V[0]=gmres_R0.normalized();
         //Vmを作る
         double h[m][m]{};
         for(int i=0; i<m; ++i){
             for(int k=0; k<m; ++k){
-                //FIXME:サイズがおかしい
-                //FIXME:hの求め方を間違えてるかも
-                h[k][i]=calAv().dot(gmres_V[k]);
-                h[k][i]=A*gmres_V[i].dot(gmres_V[k]);
+                h[k][i]=calAv(gmres_V[i]).dot(gmres_V[k]);
             }
             Eigen::Matrix<double, n, 1> temp_sigma=Eigen::MatrixXd::Zero(n, 1);
             for(int k=0; k<i; k++){
                 temp_sigma=h[i][k]*gmres_V[i];
             }
-            Eigen::Matrix<double, n, 1>temp_V=A*gmres_V[i]-temp_sigma;
+            Eigen::Matrix<double, n, 1>temp_V=calAv(gmres_V[i])-temp_sigma;
             double temp_size_V=temp_V.norm();
             gmres_V[i]=(1.0/temp_size_V)*temp_V;
         }
