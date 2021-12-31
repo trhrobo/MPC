@@ -55,20 +55,20 @@ Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _u, Ei
               _x2_f;
     return rphirx;
 }
-Eigen::Matrix<double, 2, 1> dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _row_){
+Eigen::Matrix<double, 2, 1> dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
     Eigen::Matrix<double, 2, 1> temp_lamda_=_u_;
     temp_lamda_(0, 0)=0;
-    return _u_+temp_lamda_+2*_row_*_u_;
+    return _u_+temp_lamda_+2*_rho_*_u_;
 }
-Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, double _row_){
+Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, double _rho_){
     //制約なし
     Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
     return ans;
 }
-Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _row_){
-    Eigen::Matrix<double, N_step, 1> F;
+Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> F;
     for(int i=0; i<N_step; i++){
-        F(i, 0)=dHdu(_x_, _u_, _lamda_, _row_);
+        F(i, 0)=dHdu(_x_, _u_, _lamda_, _rho_);
     }
     return F;
 }
@@ -88,7 +88,7 @@ int main(){
     X << x1,
          x2;
     //U(0)を決定する
-    Eigen::Matrix<double, N_step, 1> U=Eigen::MatrixXd::Ones(N_step, 1);
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> U=Eigen::MatrixXd::Ones(N_step, 1);
     while(1){
         //2
         //u(t)=u0(t)をシステムへの制御入力とする
