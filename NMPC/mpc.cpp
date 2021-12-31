@@ -79,16 +79,9 @@ Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen:
     Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans=(calF(_U+h*_V, x+hx')-calF(_U, x+hx'))/h;
     return ans;
 }
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calA(){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans;
-    return ans;
-}
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, m> ans=-1*zeta*calF()-(calF()-calF())/h;
-    return ans;
-}
 Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calR0(){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans=calb()-calA();
+    //U'(0)=U0を使用する
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans=-1*zeta*F(U(0), x(0), 0) -(F(U(0), x(0)+hx'(0), h)-F(U(0), x(0), 0))/h-(F(U(0)+h*U'(0), x(0)+hx'(0), h)-F(U(0), x(0)+hx'(0), h))/h;
     return ans;
 }
 int main(){
@@ -160,7 +153,7 @@ int main(){
             for(int k=0; k<m; ++k){
                 h[k][i]=calAv(gmres_V[i]).dot(gmres_V[k]);
             }
-            Eigen::Matrix<double, n, 1> temp_sigma=Eigen::MatrixXd::Zero(n, 1);
+            Eigen::Matrix<double, N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(n, 1);
             for(int k=0; k<i; k++){
                 temp_sigma=h[i][k]*gmres_V[i];
             }
