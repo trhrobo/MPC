@@ -34,7 +34,10 @@ double t=0;
 double u=0;
 constexpr double x1=10;
 constexpr double x2=10;
-
+//mはリスタートパラメータ
+constexpr int m=30;
+//FIXME:nを求める必要がある
+constexpr int n=40;
 Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, double _u, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
     double x1 = _X(0, 0);
@@ -52,21 +55,23 @@ Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _u, Ei
               _x2_f;
     return rphirx;
 }
-double dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, double _lamda_){
-    //FIXME:手計算する
-    return ;
+Eigen::Matrix<double, 2, 1> dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _row_){
+    Eigen::Matrix<double, 2, 1> temp_lamda_=_u_;
+    temp_lamda_(0, 0)=0;
+    return _u_+temp_lamda_+2*_row_*_u_;
 }
-double Constraint(double _x_, double _u_, double _lamda_){
-    //FIXME:手計算する
-    return ;
+Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, double _row_){
+    //制約なし
+    Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
+    return ans;
 }
-void calF(){
-
+Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _row_){
+    Eigen::Matrix<double, N_step, 1> F;
+    for(int i=0; i<N_step; i++){
+        F(i, 0)=dHdu(_x_, _u_, _lamda_, _row_);
+    }
+    return F;
 }
-//mはリスタートパラメータ
-constexpr int m=30;
-//FIXME:nを求める必要がある
-constexpr int n=40;
 Eigen::Matrix<double, n, m> calA(Eigen::Matrix<double, N_step, 1> _U, double _x, double _t){
     return (calF()-calF())/h;
 }
@@ -124,11 +129,12 @@ int main(){
         //gmres法を用いてdUを求める
         Eigen::Matrix<double, N_step, 1> dU=Eigen::MatrixXd::Ones(N_step, 1);
         //Fを作る
-        Eigen::Matrix<double, 2*N_step, 1> F;
-        for(int i=0; i<N_step; i+=2){
+        Eigen::Matrix<double, N_step, 1> F;
+        for(int i=0; i<N_step; i++){
             //FIXME:サイズが違う
             F(i, 0)=dHdu();
-            F(i+1, 0)=Constraint();
+            //制約条件無し
+            //F(i+1, 0)=Constraint();
         }
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
