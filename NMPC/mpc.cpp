@@ -89,7 +89,7 @@ Eigen::Matrix<double, n, 1> calR0(){
 }
 int main(){
     //x_(x*)
-    Eigen::Matrix<double, N_step, 2> X_=Eigen::MatrixXd::Ones(N_step, 2);
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 2> X_=Eigen::MatrixXd::Ones(N_step, 2);
     Eigen::Matrix<double, N_step, 2> Lamda_=Eigen::MatrixXd::Ones(N_step, 2);
     //1
     //X(0)を測定する
