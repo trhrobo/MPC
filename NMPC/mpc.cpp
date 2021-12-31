@@ -74,6 +74,7 @@ Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, d
 }
 Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _x_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
     Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> F;
+    //制約なし
     for(int i=0; i<N_step; i++){
         F(i, 0)=rHru(_x_, _u_, _lamda_, _rho_);
     }
@@ -146,18 +147,9 @@ int main(){
         }
         //5
         //gmres法を用いてdUを求める
-        Eigen::Matrix<double, N_step, 1> dU=Eigen::MatrixXd::Ones(N_step, 1);
-        //Fを作る
-        Eigen::Matrix<double, N_step, 1> F;
-        for(int i=0; i<N_step; i++){
-            //FIXME:サイズが違う
-            F(i, 0)=rHru();
-            //制約条件無し
-            //F(i+1, 0)=Constraint();
-        }
+        //
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
-        //Ax=bを解く
         //num_solutionは解の個数
         constexpr double num_solution=60;
         //FIXME:サイズを間違えている可能性がある
