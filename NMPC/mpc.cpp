@@ -30,20 +30,19 @@ constexpr double zeta=0.1;
 constexpr double h=0.001;
 //初期値設定
 double t=0;
-//各時刻における制御入力
-double u=0;
 constexpr double x1=10;
 constexpr double x2=10;
 //mはリスタートパラメータ
 constexpr int m=30;
 //FIXME:nを求める必要がある
 constexpr int n=40;
-Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, double _u, double _t){
+Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1>_u, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
-    double x1 = _X(0, 0);
-    double x2 = _X(1, 0);
+    double x1=_X(0, 0);
+    double x2=_X(1, 0);
+    double u=_X(0, 0);
     model_F << x2,
-         (1-std::pow(x1, 2)-std::pow(x2, 2))*x2-x1+_u;
+               ((1-std::pow(x1, 2)-std::pow(x2, 2))*x2-x1 _u);
     return model_F;
 }
 
@@ -76,8 +75,16 @@ Eigen::Matrix<double, n, 1> calAv(Eigen::Matrix<double, n, 1> _V){
     Eigen::Matrix<double, n, 1> ans=(calF(U+h*_V, x+hx')-calF(U, x+hx'))/h;
     return ans;
 }
+Eigen::Matrix<double, n, 1> calA(){
+    Eigen::Matrix<double, n, 1> ans;
+    return ans;
+}
 Eigen::Matrix<double, n, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
     Eigen::Matrix<double, n, m> ans=-1*zeta*calF()-(calF()-calF())/h;
+    return ans;
+}
+Eigen::Matrix<double, n, 1> calR0(){
+    Eigen::Matrix<double, n, 1> ans=calb()-calA();
     return ans;
 }
 int main(){
@@ -90,6 +97,8 @@ int main(){
     X << x1,
          x2;
     //U(0)を決定する
+    //各時刻における制御入力
+    Eigen::Matrix<double, 2, 1> u=Eigen::MatrixXd::Zero(2, 1);
     Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> U=Eigen::MatrixXd::Ones(N_step, 1);
     while(1){
         //2
@@ -151,7 +160,7 @@ int main(){
         Eigen::Matrix<double, n, m> gmres_Vm;
         Eigen::Matrix<double, n, 1> gmres_R0;
         //初期残差gmres_R0を求める
-        gmres_R0=calb()-calAv();
+        gmres_R0=calR0();
         gmres_V[0]=gmres_R0.normalized();
         //Vmを作る
         double h[m][m]{};
