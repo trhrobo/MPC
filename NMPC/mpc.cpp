@@ -23,7 +23,7 @@
 constexpr double error=0.00001;
 constexpr double dt=0.001;
 //予測ステップ
-constexpr int N_step=30;
+constexpr int N_step=10;
 constexpr double T_predict=10;
 constexpr double dtau=T_predict/N_step;
 constexpr double zeta=0.1;
@@ -45,7 +45,6 @@ Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, Eigen::Ma
                ((1-std::pow(x1, 2)-std::pow(x2, 2))*x2-x1 _u);
     return model_F;
 }
-
 Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _u, Eigen::Matrix<double, 2, 1> _lamda, double _t){
     Eigen::Matrix<double, 2, 1> rphirx;
     double _x1_f = _X(0, 0);
@@ -71,7 +70,7 @@ Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>,
     }
     return F;
 }
-Eigen::Matrix<double, n, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U, Eigen::Matrix<double, n, 1> _V){
+Eigen::Matrix<double, n, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U,Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 2> _X_, Eigen::Matrix<double, N_step, 2>, Eigen::Matrix<double, n, 1> _V){
     Eigen::Matrix<double, n, 1> ans=(calF(_U+h*_V, x+hx')-calF(_U, x+hx'))/h;
     return ans;
 }
@@ -88,27 +87,35 @@ Eigen::Matrix<double, n, 1> calR0(){
     return ans;
 }
 int main(){
-    //x_(x*)
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 2> X_=Eigen::MatrixXd::Ones(N_step, 2);
-    Eigen::Matrix<double, N_step, 2> Lamda_=Eigen::MatrixXd::Ones(N_step, 2);
-    //1
-    //X(0)を測定する
+    //現在の状態
+    //x={x1, x2}
     Eigen::Matrix<double, 2, 1> X;
+    //x_(x*)
+    //0~Nまでx1, x2, lamda1, lamda2
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> X_;
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Lamda_;
+    //1
+    //X(0)を測定する(初期値を代入する)
     X << x1,
          x2;
     //U(0)を決定する
     //各時刻における制御入力
-    Eigen::Matrix<double, 2, 1> u=Eigen::MatrixXd::Zero(2, 1);
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> U=Eigen::MatrixXd::Ones(N_step, 1);
+    //・入力が一つ
+    //・ダミー入力が一つ
+    //・等式制約条件が一つ
+    constexpr int u_size=3;
+    //u={u, dummy, rho}
+    Eigen::Matrix<double, 3, 1> u=Eigen::MatrixXd::Zero(3, 1);
+    Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> U;
     while(1){
         //2
         //u(t)=u0(t)をシステムへの制御入力とする
+        //u={u, dummy, rho}
         u=U(0, 0);
         //3
         //x_を求める
         //x0*(t)=x(t)
-        X_(0, 0)=X(0, 0);
-        X_(0, 1)=X(1, 0);
+        X_(0, 0)=X;
         Eigen::Matrix<double, 2, 1> prev_temp_X_;
         prev_temp_X_ << X_(0, 0),
                         X_(0, 1);
