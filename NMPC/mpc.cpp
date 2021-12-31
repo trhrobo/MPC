@@ -37,6 +37,7 @@ constexpr int m=30;
 //FIXME:nを求める必要がある
 constexpr int n=40;
 Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1>_u, double _t){
+    //手計算する
     Eigen::Matrix<double, 2, 1> model_F;
     double x1=_X(0, 0);
     double x2=_X(1, 0);
@@ -45,18 +46,26 @@ Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, Eigen::Ma
                ((1-std::pow(x1, 2)-std::pow(x2, 2))*x2-x1 _u);
     return model_F;
 }
-Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _u, Eigen::Matrix<double, 2, 1> _lamda, double _t){
-    Eigen::Matrix<double, 2, 1> rphirx;
-    double _x1_f = _X(0, 0);
-    double _x2_f = _X(1, 0);
-    rphirx << _x1_f,
-              _x2_f;
+Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _t){
+    //手計算する
+    Eigen::Matrix<double, 2, 1> rphirx=_X;
     return rphirx;
 }
-Eigen::Matrix<double, 2, 1> dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
+Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
+    //手計算する
     Eigen::Matrix<double, 2, 1> temp_lamda_=_u_;
     temp_lamda_(0, 0)=0;
     return _u_+temp_lamda_+2*_rho_*_u_;
+}
+Eigen::Matrix<double, 2, 1> rHrx(Eigen::Matrix<double, 2, 1> _x_,Eigen::Matrix<double, 3, 1> _u, Eigen::Matrix<double, 2, 1> _lamda_, double _t){
+    double x1=_x_(0, 0);
+    double x2=_x_(1, 0);
+    double lamda1=_lamda_(0, 0);
+    double lamda2=_lamda_(1, 0);
+    Eigen::Matrix<double, 2, 1> ans;
+    ans<<x1-2*x1*x2*lamda2-lamda2,
+         x2+lamda1+(-3*x2*x2-x1*x1+1)*lamda2;
+    return ans;
 }
 Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, double _rho_){
     //制約なし
@@ -66,7 +75,7 @@ Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, d
 Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _x_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
     Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> F;
     for(int i=0; i<N_step; i++){
-        F(i, 0)=dHdu(_x_, _u_, _lamda_, _rho_);
+        F(i, 0)=rHru(_x_, _u_, _lamda_, _rho_);
     }
     return F;
 }
@@ -113,35 +122,27 @@ int main(){
         //u={u, dummy, rho}
         u=U(0, 0);
         //3
-        //x_を求める
-        //x0*(t)=x(t)
+        //x_(x*)を求める
+        //x0*(t)=x(t)を計算する
         X_(0, 0)=X;
-        Eigen::Matrix<double, 2, 1> prev_temp_X_;
-        prev_temp_X_ << X_(0, 0),
-                        X_(0, 1);
-        for(int i=1; i <= (N_step-1); i++){
-            Eigen::Matrix<double, 2, 1> temp_X_;
-            temp_X_=prev_temp_X_+calcModelF(prev_temp_X_, U(i, 0), t+i*dtau)*dtau;
-            X_(i, 0)=temp_X_(0, 0);
-            X_(i, 1)=temp_X_(1, 0);
-            prev_temp_X_=temp_X_;
+        //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
+        Eigen::Matrix<double, 2, 1> prev_temp_X_=X_(0, 0);
+        for(int i=1; i < N_step; i++){
+            X_(i, 0)=prev_temp_X_+calcModelF(prev_temp_X_, U(i, 0), t+i*dtau)*dtau;
+            prev_temp_X_=X_(i, 0);
         }
         //4
-        //lamda_を求める
-        //lamdaN_を決定する
-        Eigen::Matrix<double, 2, 1> LamdaN_=rphirx(X_(N_step-1, 0), X_(N_step-1, 1));
-        Lamda_(N-1, 0)=LamdaN_(0, 0);
-        Lamda_(N-1, 1)=LamdaN_(1, 0);
-        //lamda_を計算する
-        Eigen::Matrix<double, 2, 1> prev_temp_Lamda_;
-        prev_temp_Lamda_ << Lamda_(N-1, 0),
-                            Lamda_(N-1, 1);
-        for(int i=N-1; i > 0; --i){
+        //lamda_(lamda*)を求める
+        //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
+        Lamda_(N_step-1, 0)=rphirx(X_(N_step-1, 0), t+T_predict);
+        //lamdai*=lamdai+1*+(rH/ru)^T*dtau
+        Eigen::Matrix<double, 2, 1> prev_temp_Lamda_=Lamda_(N_step-1, 0);
+        //逆順で解く
+        for(int i=N_step-1; i > 0; --i){
             Eigen::Matrix<double, 2, 1> temp_Lamda_;
             //FIXME:X_の行列を転置行列にすればいい
-            temp_Lamda_=prev_temp_Lamda_+rphirx(X_[i], U[i], prev_temp_Lamda_, t+i*dtau)*dtau;
-            Lamda_(i, 0)=temp_Lamda_(0, 0);
-            Lamda_(i, 1)=temp_Lamda_(1, 0);
+            Lamda_(i, 0)=prev_temp_Lamda_+rHrx(X_(i, 0), U[i], prev_temp_Lamda_, t+i*dtau)*dtau;
+            prev_temp_Lamda_=Lamda_(i, 0);
         }
         //5
         //gmres法を用いてdUを求める
@@ -150,7 +151,7 @@ int main(){
         Eigen::Matrix<double, N_step, 1> F;
         for(int i=0; i<N_step; i++){
             //FIXME:サイズが違う
-            F(i, 0)=dHdu();
+            F(i, 0)=rHru();
             //制約条件無し
             //F(i+1, 0)=Constraint();
         }
