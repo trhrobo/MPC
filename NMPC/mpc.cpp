@@ -43,6 +43,16 @@ double Constraint(double _x_, double _u_, double _lamda_){
     //FIXME:手計算する
     return ;
 }
+//mはリスタートパラメータ
+constexpr int m=30;
+//FIXME:nを求める必要がある
+constexpr int n=40;
+Eigen::Matrix<double, n, m> calA(Eigen::Matrix<double, N_step, 1> _U, double _x, double _t){
+    return ;
+}
+Eigen::Matrix<double, n, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
+    return ;
+}
 int main(){
     /*各種定数設定*/
     //目標値に対する誤差
@@ -108,6 +118,7 @@ int main(){
         }
         //5
         //gmres法を用いてdUを求める
+        Eigen::Matrix<double, N_step, 1> dU=Eigen::MatrixXd::Ones(N_step, 1);
         //Fを作る
         Eigen::Matrix<double, 2*N_step, 1> F;
         for(int i=0; i<N_step; i+=2){
@@ -115,19 +126,14 @@ int main(){
             F(i, 0)=dHdu();
             F(i+1, 0)=Constraint();
         }
-        Eigen::Matrix<double, N_step, 1> dU=Eigen::MatrixXd::Ones(N_step, 1);
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
         //Ax=bを解く
-        //mはリスタートパラメータ
-        constexpr int m=30;
-        //FIXME:nを求める必要がある
-        constexpr int n=40;
         //num_solutionは解の個数
         constexpr double num_solution=60;
         //FIXME:サイズを間違えている可能性がある
-        Eigen::Matrix<double, n, m> A;
-        Eigen::Matrix<double, n, 1> b;
+        Eigen::Matrix<double, n, m> A=calA();
+        Eigen::Matrix<double, n, 1> b=calb();
         Eigen::Matrix<double, num_solution, 1> gmres_Xm;
         Eigen::Matrix<double, m, 1> gmres_Ym;
         Eigen::Matrix<double, num_solution, 1> gmres_X0=Eigen::MatrixXd::Zero(num_solution, 1);
