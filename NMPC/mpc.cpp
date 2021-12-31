@@ -34,25 +34,20 @@ constexpr double x1=10;
 constexpr double x2=10;
 //mはリスタートパラメータ
 constexpr int m=30;
-//FIXME:nを求める必要がある
-constexpr int n=40;
-Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1>_u, double _t){
-    //手計算する
+Eigen::Matrix<double, 2, 1> calcModel(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1>_u, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
     double x1=_X(0, 0);
     double x2=_X(1, 0);
     double u=_X(0, 0);
     model_F << x2,
-               ((1-std::pow(x1, 2)-std::pow(x2, 2))*x2-x1 _u);
+               ((1-x1*x1-x2*x2)*x2-x1+u);
     return model_F;
 }
 Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _t){
-    //手計算する
     Eigen::Matrix<double, 2, 1> rphirx=_X;
     return rphirx;
 }
 Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
-    //手計算する
     Eigen::Matrix<double, 2, 1> temp_lamda_=_u_;
     temp_lamda_(0, 0)=0;
     return _u_+temp_lamda_+2*_rho_*_u_;
@@ -72,7 +67,7 @@ Eigen::Matrix<double, 2, 1> Constraint(double _x_, double _u_, double _lamda_, d
     Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
     return ans;
 }
-Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _x_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _x_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_, Eigen::Matrix<double, 2, 1> _rho_){
     Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> F;
     //制約なし
     for(int i=0; i<N_step; i++){
@@ -80,20 +75,20 @@ Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>,
     }
     return F;
 }
-Eigen::Matrix<double, n, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U,Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 2> _X_, Eigen::Matrix<double, N_step, 2>, Eigen::Matrix<double, n, 1> _V){
-    Eigen::Matrix<double, n, 1> ans=(calF(_U+h*_V, x+hx')-calF(_U, x+hx'))/h;
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U,Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 2> _X_, Eigen::Matrix<double, N_step, 2>, Eigen::Matrix<double, n, 1> _V){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans=(calF(_U+h*_V, x+hx')-calF(_U, x+hx'))/h;
     return ans;
 }
-Eigen::Matrix<double, n, 1> calA(){
-    Eigen::Matrix<double, n, 1> ans;
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calA(){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans;
     return ans;
 }
-Eigen::Matrix<double, n, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
-    Eigen::Matrix<double, n, m> ans=-1*zeta*calF()-(calF()-calF())/h;
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, m> ans=-1*zeta*calF()-(calF()-calF())/h;
     return ans;
 }
-Eigen::Matrix<double, n, 1> calR0(){
-    Eigen::Matrix<double, n, 1> ans=calb()-calA();
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calR0(){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> ans=calb()-calA();
     return ans;
 }
 int main(){
@@ -129,7 +124,7 @@ int main(){
         //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
         Eigen::Matrix<double, 2, 1> prev_temp_X_=X_(0, 0);
         for(int i=1; i < N_step; i++){
-            X_(i, 0)=prev_temp_X_+calcModelF(prev_temp_X_, U(i, 0), t+i*dtau)*dtau;
+            X_(i, 0)=prev_temp_X_+calcModel(prev_temp_X_, U(i, 0), t+i*dtau)*dtau;
             prev_temp_X_=X_(i, 0);
         }
         //4
@@ -150,15 +145,12 @@ int main(){
         //
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
-        //num_solutionは解の個数
-        constexpr double num_solution=60;
-        //FIXME:サイズを間違えている可能性がある
-        Eigen::Matrix<double, num_solution, 1> gmres_Xm;
+        Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> gmres_Xm;
+        Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> gmres_X0;
         Eigen::Matrix<double, m, 1> gmres_Ym;
-        Eigen::Matrix<double, num_solution, 1> gmres_X0=Eigen::MatrixXd::Zero(num_solution, 1);
-        Eigen::Matrix<double, n, 1> gmres_V[m];
-        Eigen::Matrix<double, n, m> gmres_Vm;
-        Eigen::Matrix<double, n, 1> gmres_R0;
+        Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> gmres_V[m];
+        Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, m> gmres_Vm;
+        Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> gmres_R0;
         //初期残差gmres_R0を求める
         gmres_R0=calR0();
         gmres_V[0]=gmres_R0.normalized();
