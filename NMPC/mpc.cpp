@@ -44,13 +44,13 @@ Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, double _u
     return model_F;
 }
 
-Eigen::Matrix<double, 2, 1> caclRphiRx(Eigen::Matrix<double, 2, 1> _X, double _u, Eigen::Matrix<double, 2, 1> _lamda, double _t){
-    Eigen::Matrix<double, 2, 1> RphiRx;
+Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _u, Eigen::Matrix<double, 2, 1> _lamda, double _t){
+    Eigen::Matrix<double, 2, 1> rphirx;
     double _x1_f = _X(0, 0);
     double _x2_f = _X(1, 0);
-    RphiRx << _x1_f,
+    rphirx << _x1_f,
               _x2_f;
-    return RphiRx;
+    return rphirx;
 }
 double dHdu(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, double _lamda_){
     //FIXME:手計算する
@@ -106,7 +106,7 @@ int main(){
         //4
         //lamda_を求める
         //lamdaN_を決定する
-        Eigen::Matrix<double, 2, 1> LamdaN_=caclRphiRx(X_(N_step-1, 0), X_(N_step-1, 1));
+        Eigen::Matrix<double, 2, 1> LamdaN_=rphirx(X_(N_step-1, 0), X_(N_step-1, 1));
         Lamda_(N-1, 0)=LamdaN_(0, 0);
         Lamda_(N-1, 1)=LamdaN_(1, 0);
         //lamda_を計算する
@@ -116,7 +116,7 @@ int main(){
         for(int i=N-1; i > 0; --i){
             Eigen::Matrix<double, 2, 1> temp_Lamda_;
             //FIXME:X_の行列を転置行列にすればいい
-            temp_Lamda_=prev_temp_Lamda_+caclRphiRx(X_[i], U[i], prev_temp_Lamda_, t+i*dtau)*dtau;
+            temp_Lamda_=prev_temp_Lamda_+rphirx(X_[i], U[i], prev_temp_Lamda_, t+i*dtau)*dtau;
             Lamda_(i, 0)=temp_Lamda_(0, 0);
             Lamda_(i, 1)=temp_Lamda_(1, 0);
         }
