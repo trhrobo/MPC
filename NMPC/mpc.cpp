@@ -72,11 +72,13 @@ Eigen::Matrix<double, N_step, 1> calF(Eigen::Matrix<double, 2, 1> _x_, Eigen::Ma
     }
     return F;
 }
-Eigen::Matrix<double, n, m> calA(Eigen::Matrix<double, N_step, 1> _U, double _x, double _t){
-    return (calF()-calF())/h;
+Eigen::Matrix<double, n, 1> calAv(Eigen::Matrix<double, n, 1> _V){
+    Eigen::Matrix<double, n, 1> ans=(calF(U+h*_V, x+hx')-calF(U, x+hx'))/h;
+    return ans;
 }
 Eigen::Matrix<double, n, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
-    return -1*zata*calF()-(calF()-calF())/h;
+    Eigen::Matrix<double, n, m> ans=-1*zata*calF()-(calF()-calF())/h;
+    return ans;
 }
 int main(){
     //x_(x*)
@@ -158,6 +160,7 @@ int main(){
             for(int k=0; k<m; ++k){
                 //FIXME:サイズがおかしい
                 //FIXME:hの求め方を間違えてるかも
+                h[k][i]=calAv().dot(gmres_V[k]);
                 h[k][i]=A*gmres_V[i].dot(gmres_V[k]);
             }
             Eigen::Matrix<double, n, 1> temp_sigma=Eigen::MatrixXd::Zero(n, 1);
@@ -217,7 +220,7 @@ int main(){
                 temp_prod_s*=s[k];
             }
             //FIXME:std::pow(-1, i-1)を偶数,奇数で判別した方が速くなる
-            g[i]=std::pow(-1, i-1)*gmres_R0.norm()*c[i]*temp_sigma_s;
+            g[i]=std::pow(-1, i-1)*gmres_R0.norm()*c[i]*temp_prod_s;
             Gm(0, i)=g[i];
         }
         //後退代入によってRm*Ym=Gmを解く
