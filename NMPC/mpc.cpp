@@ -18,6 +18,23 @@
 非線形最適制御入門(例8.1)
 */
 
+/*各種定数設定*/
+//目標値に対する誤差
+constexpr double error=0.00001;
+constexpr double dt=0.001;
+//予測ステップ
+constexpr int N_step=30;
+constexpr double T_predict=10;
+constexpr double dtau=T_predict/N_step;
+constexpr double zeta=0.1;
+constexpr double h=0.001;
+//初期値設定
+double t=0;
+//各時刻における制御入力
+double u=0;
+constexpr double x1=10;
+constexpr double x2=10;
+
 Eigen::Matrix<double, 2, 1> calcModelF(Eigen::Matrix<double, 2, 1> _X, double _u, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
     double x1 = _X(0, 0);
@@ -43,33 +60,20 @@ double Constraint(double _x_, double _u_, double _lamda_){
     //FIXME:手計算する
     return ;
 }
+void calF(){
+
+}
 //mはリスタートパラメータ
 constexpr int m=30;
 //FIXME:nを求める必要がある
 constexpr int n=40;
 Eigen::Matrix<double, n, m> calA(Eigen::Matrix<double, N_step, 1> _U, double _x, double _t){
-    return ;
+    return (calF()-calF())/h;
 }
 Eigen::Matrix<double, n, m> calb(Eigen::Matrix<double, N_step, 1> _U, double _x. double _t){
-    return ;
+    return -1*zata*calF()-(calF()-calF())/h;
 }
 int main(){
-    /*各種定数設定*/
-    //目標値に対する誤差
-    constexpr double error=0.00001;
-    constexpr double dt=0.001;
-    //予測ステップ
-    constexpr int N_step=30;
-    constexpr double T_predict=10;
-    constexpr double dtau=T_predict/N_step;
-    constexpr double zeta=0.1;
-    constexpr double h=0.001;
-    //初期値設定
-    double t=0;
-    //各時刻における制御入力
-    double u=0;
-    constexpr double x1=10;
-    constexpr double x2=10;
     //x_(x*)
     Eigen::Matrix<double, N_step, 2> X_=Eigen::MatrixXd::Ones(N_step, 2);
     Eigen::Matrix<double, N_step, 2> Lamda_=Eigen::MatrixXd::Ones(N_step, 2);
