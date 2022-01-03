@@ -113,8 +113,8 @@ Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen:
     return Av;
 }
 */
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<double, n, 1> _V){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V_, _X_(0, 0)+h*calModel( , , 0))-calF(_U_, _X_(0, 0)+h*calModel( , , 0), 0))/h;
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _V){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V, _X_(0, 0)+h*calModel(_X_(0, 0), _U_(0, 0), 0))-calF(_U_, _X_(0, 0)+h*calModel(_X_(0, 0), _U_(0, 0), 0))/h;
     //FIXME:Viはどうすればいい?
     //こんな感じにしなくていい?
     //Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V_, _X_(i, 0)+h*calModel( , , 0))-calF(_U_, _X_(i, 0)+h*calModel( , , 0), 0))/h;
