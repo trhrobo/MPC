@@ -74,12 +74,12 @@ Eigen::Matrix<double, 2, 1> Constraint(double _u_, double _x_, double _lamda_, d
     Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
     return ans;
 }
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calF(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U, Eigen::Matrix<double, 2, 1> _x, double _t){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> F;
+Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _x, double _t){
+    Eigen::Matrix<double, 2*N_step, 1> F;
     //制約なし
     //0~Nまでx1, x2, lamda1, lamda2
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> X_;
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Lamda_;
+    Eigen::Matrix<double, 2*N_step, 1> X_;
+    Eigen::Matrix<double, 2*N_step, 1> Lamda_;
     //x_(x*)を求める
     //x0*(t)=x(t)を計算する
     X_(0, 0)=_x;
@@ -108,18 +108,19 @@ Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calF(Eigen::Matrix<Eigen::
     return F;
 }
 /*
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<double, n, 1> _V){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V_, x+h*dx, 0)-calF(_U_, x+h*dx, 0))/h;
+Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<double, n, 1> _V){
+    Eigen::Matrix<double, 2*N_step, 1> Av=(calF(_U_+h*_V_, x+h*dx, 0)-calF(_U_, x+h*dx, 0))/h;
     return Av;
 }
 */
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _V){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U+h*_V, _X+h*calModel(_X, _U(0, 0), 0))-calF(_U, _X+h*calModel(_X, _U(0, 0), 0))/h;
+Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2*N_step, 1> _V, double _t){
+    Eigen::Matrix<double, 2*N_step, 1> Av=(calF(_U+h*_V, _X+h*calModel(_X, _U(0, 0), 0))-calF(_U, _X+h*calModel(_X, _U(0, 0), 0))/h;
     return Av;
 }
-Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calR0(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_){
+Eigen::Matrix<double, 2*N_step, 1> calR0(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, double _t){
     //U'(0)=U0を使用する
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> R0=-1*zeta*calF(_U_, _X_, 0) -(calF(_U_, _X_+hdx, h)-F(_U_, _X_, 0))/h-(F(_U_+h*dU, X+h*dX, h)-calF(_U_, _X_+h*dx, h))/h;
+    Eigen::Matrix<double, 2*N_step, 1> dU=_U;
+    Eigen::Matrix<double, 2*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U(0, 0), 0), h)-F(_U, _X, 0))/h-(F(_U+h*dU, _X+h*calModel(_X, _U(0, 0), 0), h)-calF(_U, _X+h*calModel(_X, _U(0, 0), 0), h))/h;
     return R0;
 }
 int main(){
@@ -145,23 +146,23 @@ int main(){
         //u={u, dummy, rho}
         u=U(0, 0);
         //gmres法を用いてdUを求める
-        Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> dU;
+        Eigen::Matrix<double, 3*N_step, 1> dU;
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
-        Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> gmres_Xm;
-        Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> gmres_X0;
+        Eigen::Matrix<double, 3*N_step, 1> gmres_Xm;
+        Eigen::Matrix<double, 3*N_step, 1> gmres_X0;
         Eigen::Matrix<double, m, 1> gmres_Ym;
-        Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> gmres_V[m];
-        Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, m> gmres_Vm;
-        Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> gmres_R0;
+        Eigen::Matrix<double, 3*N_step, 1> gmres_V[m];
+        Eigen::Matrix<double, 3*N_step, m> gmres_Vm;
+        Eigen::Matrix<double, 3*N_step, 1> gmres_R0;
         //初期残差gmres_R0を求める
-        gmres_R0=calR0();
+        gmres_R0=calR0(U, X, t);
         gmres_V[0]=gmres_R0.normalized();
         //Vmを作る
         double h[m][m]{};
         for(int i=0; i<m; ++i){
             for(int k=0; k<m; ++k){
-                h[k][i]=calAv(gmres_V[i]).dot(gmres_V[k]);
+                h[k][i]=calAv(U, X, gmres_V[i], t).dot(gmres_V[k]);
             }
             Eigen::Matrix<double, N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(N_step, 1);
             for(int k=0; k<i; k++){
