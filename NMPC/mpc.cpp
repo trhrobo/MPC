@@ -34,7 +34,7 @@ constexpr double x1=10;
 constexpr double x2=10;
 //mはリスタートパラメータ
 constexpr int m=30;
-Eigen::Matrix<double, 2, 1> calcModel(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1> _U, double _t){
+Eigen::Matrix<double, 2, 1> calModel(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1> _U, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
     double x1=_X(0, 0);
     double x2=_X(1, 0);
@@ -86,7 +86,7 @@ Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calF(Eigen::Matrix<Eigen::
     //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
     Eigen::Matrix<double, 2, 1> prev_temp_X_=X_(0, 0);
     for(int i=1; i < N_step; i++){
-        X_(i, 0)=prev_temp_X_+calcModel(prev_temp_X_, _U(i, 0), t+i*dtau)*dtau;
+        X_(i, 0)=prev_temp_X_+calModel(prev_temp_X_, _U(i, 0), t+i*dtau)*dtau;
         prev_temp_X_=X_(i, 0);
     }
     //4
@@ -107,8 +107,17 @@ Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calF(Eigen::Matrix<Eigen::
     }
     return F;
 }
+/*
 Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<double, n, 1> _V){
-    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U+h*_V, x+hx')-calF(_U, x+hx'))/h;
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V_, x+h*dx, 0)-calF(_U_, x+h*dx, 0))/h;
+    return Av;
+}
+*/
+Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<double, n, 1> _V){
+    Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V_, _X_(0, 0)+h*calModel( , , 0))-calF(_U_, _X_(0, 0)+h*calModel( , , 0), 0))/h;
+    //FIXME:Viはどうすればいい?
+    //こんな感じにしなくていい?
+    //Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> Av=(calF(_U_+h*_V_, _X_(i, 0)+h*calModel( , , 0))-calF(_U_, _X_(i, 0)+h*calModel( , , 0), 0))/h;
     return Av;
 }
 Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> calR0(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_){
@@ -130,7 +139,9 @@ int main(){
     //・等式制約条件が一つ
     constexpr int u_size=3;
     //u={u, dummy, rho}
+    //dummyは入れなくていいのでは?
     Eigen::Matrix<double, 3, 1> u=Eigen::MatrixXd::Zero(3, 1);
+    //FIXME:Uの初期化
     Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> U;
     while(1){
         //u(t)=u0(t)をシステムへの制御入力とする
