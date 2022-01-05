@@ -82,28 +82,30 @@ Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, 2*N_step, 1> _U, E
     Eigen::Matrix<double, 2*N_step, 1> Lamda_;
     //x_(x*)を求める
     //x0*(t)=x(t)を計算する
-    X_(0, 0)=_x;
+    //部分行列を用いる
+    X_.block(0, 0, 2, 1)=_x;
     //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
-    Eigen::Matrix<double, 2, 1> prev_temp_X_=X_(0, 0);
+    Eigen::Matrix<double, 2, 1> prev_temp_X_=_x;
     for(int i=1; i < N_step; i++){
-        X_(i, 0)=prev_temp_X_+calModel(prev_temp_X_, _U(i, 0), t+i*dtau)*dtau;
-        prev_temp_X_=X_(i, 0);
+        X_.block(2*i, 0, 2, 1)=prev_temp_X_+calModel(prev_temp_X_, _U.block(2*i, 0, 2, 1), t+i*dtau)*dtau;
+        prev_temp_X_=X_.block(2*i, 0, 2, 1);
     }
     //4
     //lamda_(lamda*)を求める
     //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
-    Lamda_(N_step-1, 0)=rphirx(X_(N_step-1, 0), t+T_predict);
+    //FIXME:サイズが違うかも2*N_step-2??
+    Lamda_.block(2*N_step, 0, 2, 1)=rphirx(X_.block(2*N_step, 0, 2, 1), t+T_predict);
     //lamdai*=lamdai+1*+(rH/ru)^T*dtau
-    Eigen::Matrix<double, 2, 1> prev_temp_Lamda_=Lamda_(N_step-1, 0);
+    Eigen::Matrix<double, 2, 1> prev_temp_Lamda_=Lamda_.block(2*N_step, 0, 2, 1);
     //逆順で解く
     for(int i=N_step-1; i > 0; --i){
         Eigen::Matrix<double, 2, 1> temp_Lamda_;
         //FIXME:X_の行列を転置行列にすればいい
-        Lamda_(i, 0)=prev_temp_Lamda_+rHrx(X_(i, 0), _U(i, 0), prev_temp_Lamda_, t+i*dtau)*dtau;
-        prev_temp_Lamda_=Lamda_(i, 0);
+        Lamda_.block(i, 0, 2, 1)=prev_temp_Lamda_+rHrx(X_.block(2*i, 0, 2, 1), _U.block(2*i, 0, 2, 1), prev_temp_Lamda_, t+i*dtau)*dtau;
+        prev_temp_Lamda_=Lamda_.block(2*i, 0, 2, 1);
     }
     for(int i=0; i<N_step; i++){
-        F(i, 0)=rHru(X_(i, 0), _U(i, 0), Lamda_(i, 0));
+        F.block(2*i, 0, 2, 1)=rHru(X_.block(2*i, 0, 2, 1), _U.block(2*i, 0, 2, 1), Lamda_.block(2*i, 0, 2, 1));
     }
     return F;
 }
@@ -114,13 +116,15 @@ Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 
 }
 */
 Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2*N_step, 1> _V, double _t){
-    Eigen::Matrix<double, 2*N_step, 1> Av=(calF(_U+h*_V, _X+h*calModel(_X, _U(0, 0), 0))-calF(_U, _X+h*calModel(_X, _U(0, 0), 0))/h;
+    //FIXME:行列に定数を掛け算する方法を探す
+    Eigen::Matrix<double, 2*N_step, 1> Av=(calF(_U+h*_V, _X+h*calModel(_X, _U.block(0, 0, 2 ,1), 0))-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0))/h;
     return Av;
 }
 Eigen::Matrix<double, 2*N_step, 1> calR0(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, double _t){
     //U'(0)=U0を使用する
     Eigen::Matrix<double, 2*N_step, 1> dU=_U;
-    Eigen::Matrix<double, 2*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U(0, 0), 0), h)-F(_U, _X, 0))/h-(F(_U+h*dU, _X+h*calModel(_X, _U(0, 0), 0), h)-calF(_U, _X+h*calModel(_X, _U(0, 0), 0), h))/h;
+    //FIXME:行列に定数を掛け算する方法を探す
+    Eigen::Matrix<double, 2*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X, 0))/h-(F(_U+h*dU, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h))/h;
     return R0;
 }
 int main(){
@@ -146,15 +150,15 @@ int main(){
         //u={u, dummy, rho}
         u=U(0, 0);
         //gmres法を用いてdUを求める
-        Eigen::Matrix<double, 3*N_step, 1> dU;
+        Eigen::Matrix<double, 3*N_step, 1> dU=Eigen::MatrixXd::Zero(3*N_step, 1);
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
-        Eigen::Matrix<double, 3*N_step, 1> gmres_Xm;
-        Eigen::Matrix<double, 3*N_step, 1> gmres_X0;
-        Eigen::Matrix<double, m, 1> gmres_Ym;
+        Eigen::Matrix<double, 3*N_step, 1> gmres_Xm=Eigen::MatrixXd::Zero(3*N_step, 1);
+        Eigen::Matrix<double, 3*N_step, 1> gmres_X0=Eigen::MatrixXd::Zero(3*N_step, 1);
+        Eigen::Matrix<double, m, 1> gmres_Ym=Eigen::MatrixXd::Zero(m, 1);
         Eigen::Matrix<double, 3*N_step, 1> gmres_V[m];
-        Eigen::Matrix<double, 3*N_step, m> gmres_Vm;
-        Eigen::Matrix<double, 3*N_step, 1> gmres_R0;
+        Eigen::Matrix<double, 3*N_step, m> gmres_Vm=Eigen::MatrixXd::Zero(3*N_step, m);
+        Eigen::Matrix<double, 3*N_step, 1> gmres_R0=Eigen::MatrixXd::Zero(3*N_step, 1);
         //初期残差gmres_R0を求める
         gmres_R0=calR0(U, X, t);
         gmres_V[0]=gmres_R0.normalized();
