@@ -144,11 +144,11 @@ int main(){
     //dummyは入れなくていいのでは?
     Eigen::Matrix<double, 3, 1> u=Eigen::MatrixXd::Zero(3, 1);
     //FIXME:Uの初期化
-    Eigen::Matrix<Eigen::Matrix<double, 3, 1>, N_step, 1> U;
+    Eigen::Matrix<double, 3*N_step, 1> U;
     while(1){
         //u(t)=u0(t)をシステムへの制御入力とする
         //u={u, dummy, rho}
-        u=U(0, 0);
+        u=U.block(0, 0, 2, 1);
         //gmres法を用いてdUを求める
         Eigen::Matrix<double, 3*N_step, 1> dU=Eigen::MatrixXd::Zero(3*N_step, 1);
         /*----------------------------------------------------------------
@@ -172,7 +172,7 @@ int main(){
             for(int k=0; k<i; k++){
                 temp_sigma=h[i][k]*gmres_V[i];
             }
-            Eigen::Matrix<double, n, 1>temp_V=calAv(gmres_V[i])-temp_sigma;
+            Eigen::Matrix<double, N_step, 1>temp_V=calAv(gmres_V[i])-temp_sigma;
             double temp_size_V=temp_V.norm();
             gmres_V[i]=(1.0/temp_size_V)*temp_V;
         }
