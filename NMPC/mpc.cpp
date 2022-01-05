@@ -172,6 +172,7 @@ int main(){
             for(int k=0; k<i; k++){
                 temp_sigma=h[i][k]*gmres_V[i];
             }
+            //FIXME:Uの部分行列を3*1にするのか2*1にするのか決める(ダミー変数も入力とみなす必要があるのか)
             Eigen::Matrix<double, N_step, 1>temp_V=calAv(gmres_V[i])-temp_sigma;
             double temp_size_V=temp_V.norm();
             gmres_V[i]=(1.0/temp_size_V)*temp_V;
