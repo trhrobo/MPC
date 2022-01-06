@@ -143,8 +143,7 @@ int main(){
     //u={u, dummy, rho}
     //dummyは入れなくていいのでは?
     Eigen::Matrix<double, 3, 1> u=Eigen::MatrixXd::Zero(3, 1);
-    //FIXME:Uの初期化
-    Eigen::Matrix<double, 3*N_step, 1> U;
+    Eigen::Matrix<double, 3*N_step, 1> U=Eigen::MatrixXd::Zero(3*N_step, 1);
     while(1){
         //u(t)=u0(t)をシステムへの制御入力とする
         //u={u, dummy, rho}
@@ -177,7 +176,7 @@ int main(){
             double temp_size_V=temp_V.norm();
             gmres_V[i]=(1.0/temp_size_V)*temp_V;
         }
-        for(int i=0; i<n; ++i){
+        for(int i=0; i<N_step; ++i){
             for(int k=0; k<m; ++k){
                 //FIXME:代入を間違えているかも
                 gmres_Vm(i, k)=gmres_V[i][k];
