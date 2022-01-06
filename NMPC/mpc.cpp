@@ -34,6 +34,13 @@ constexpr double x1=10;
 constexpr double x2=10;
 //mはリスタートパラメータ
 constexpr int m=30;
+    
+//各時刻における制御入力
+    //・入力が一つ
+    //・等式制約条件が一つ
+    //u={u, rho}
+constexpr int u_size=2;
+
 Eigen::Matrix<double, 2, 1> calModel(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1> _U, double _t){
     Eigen::Matrix<double, 2, 1> model_F;
     double x1=_X(0, 0);
@@ -59,7 +66,7 @@ Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<
          -0.01+2*rho*v;
     return ans;
 }
-Eigen::Matrix<double, 2, 1> rHrx(Eigen::Matrix<double, 2, 1> _x_,Eigen::Matrix<double, 3, 1> _u, Eigen::Matrix<double, 2, 1> _lamda_, double _t){
+Eigen::Matrix<double, 2, 1> rHrx(Eigen::Matrix<double, 2, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, 2, 1> _lamda_, double _t){
     double x1=_x_(0, 0);
     double x2=_x_(1, 0);
     double lamda1=_lamda_(0, 0);
@@ -74,7 +81,7 @@ Eigen::Matrix<double, 2, 1> Constraint(double _u_, double _x_, double _lamda_, d
     Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
     return ans;
 }
-Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _x, double _t){
+Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _x, double _t){
     Eigen::Matrix<double, 2*N_step, 1> F;
     //制約なし
     //0~Nまでx1, x2, lamda1, lamda2
@@ -87,7 +94,7 @@ Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, 2*N_step, 1> _U, E
     //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
     Eigen::Matrix<double, 2, 1> prev_temp_X_=_x;
     for(int i=1; i < N_step; i++){
-        X_.block(2*i, 0, 2, 1)=prev_temp_X_+calModel(prev_temp_X_, _U.block(2*i, 0, 2, 1), t+i*dtau)*dtau;
+        X_.block(2*i, 0, 2, 1)=prev_temp_X_+calModel(prev_temp_X_, _U.block(u_size*i, 0, u_size, 1), t+i*dtau)*dtau;
         prev_temp_X_=X_.block(2*i, 0, 2, 1);
     }
     //4
@@ -135,29 +142,22 @@ int main(){
     X << x1,
          x2;
     //U(0)を決定する
-    //各時刻における制御入力
-    //・入力が一つ
-    //・ダミー入力が一つ
-    //・等式制約条件が一つ
-    constexpr int u_size=3;
-    //u={u, dummy, rho}
-    //dummyは入れなくていいのでは?
-    Eigen::Matrix<double, 3, 1> u=Eigen::MatrixXd::Zero(3, 1);
-    Eigen::Matrix<double, 3*N_step, 1> U=Eigen::MatrixXd::Zero(3*N_step, 1);
+    Eigen::Matrix<double, u_size, 1> u=Eigen::MatrixXd::Zero(u_size, 1);
+    Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Zero(u_size*N_step, 1);
     while(1){
         //u(t)=u0(t)をシステムへの制御入力とする
         //u={u, dummy, rho}
-        u=U.block(0, 0, 2, 1);
+        u=U.block(0, 0, u_size, 1);
         //gmres法を用いてdUを求める
-        Eigen::Matrix<double, 3*N_step, 1> dU=Eigen::MatrixXd::Zero(3*N_step, 1);
+        Eigen::Matrix<double, u_size*N_step, 1> dU=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
-        Eigen::Matrix<double, 3*N_step, 1> gmres_Xm=Eigen::MatrixXd::Zero(3*N_step, 1);
-        Eigen::Matrix<double, 3*N_step, 1> gmres_X0=Eigen::MatrixXd::Zero(3*N_step, 1);
+        Eigen::Matrix<double, u_size*N_step, 1> gmres_Xm=Eigen::MatrixXd::Zero(u_size*N_step, 1);
+        Eigen::Matrix<double, u_size*N_step, 1> gmres_X0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         Eigen::Matrix<double, m, 1> gmres_Ym=Eigen::MatrixXd::Zero(m, 1);
-        Eigen::Matrix<double, 3*N_step, 1> gmres_V[m];
-        Eigen::Matrix<double, 3*N_step, m> gmres_Vm=Eigen::MatrixXd::Zero(3*N_step, m);
-        Eigen::Matrix<double, 3*N_step, 1> gmres_R0=Eigen::MatrixXd::Zero(3*N_step, 1);
+        Eigen::Matrix<double, u_size*N_step, 1> gmres_V[m];
+        Eigen::Matrix<double, u_size*N_step, m> gmres_Vm=Eigen::MatrixXd::Zero(u_size*N_step, m);
+        Eigen::Matrix<double, u_size*N_step, 1> gmres_R0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         //初期残差gmres_R0を求める
         gmres_R0=calR0(U, X, t);
         gmres_V[0]=gmres_R0.normalized();
@@ -244,9 +244,7 @@ int main(){
         U+=dU*dt;
         //x(t)=x(t+dt)でxの更新
         //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
-        double temp_x1=X(0, 0);
-        double temp_x2=X(0, 1);
-        X+=calcModel(temp_x1, temp_x2, u)*dt;
+        X+=calModel(X, u, t)*dt;
         t=t+dt
         if((goal-val) < error){
             break;
