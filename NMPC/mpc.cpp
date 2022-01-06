@@ -123,15 +123,15 @@ Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 
 }
 */
 Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2*N_step, 1> _V, double _t){
-    //FIXME:行列に定数を掛け算する方法を探す
-    Eigen::Matrix<double, 2*N_step, 1> Av=(calF(_U+h*_V, _X+h*calModel(_X, _U.block(0, 0, 2 ,1), 0))-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0))/h;
+    //FIXME:計算を確認する
+    Eigen::Matrix<double, 2*N_step, 1> Av=calF(_U+h*_V, _X+h*calModel(_X, _U.block(0, 0, 2 ,1), 0), 0)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), 0)/h;
     return Av;
 }
 Eigen::Matrix<double, 2*N_step, 1> calR0(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, double _t){
     //U'(0)=U0を使用する
     Eigen::Matrix<double, 2*N_step, 1> dU=_U;
     //FIXME:行列に定数を掛け算する方法を探す
-    Eigen::Matrix<double, 2*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X, 0))/h-(F(_U+h*dU, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h))/h;
+    Eigen::Matrix<double, 2*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X, 0))/h-(calF(_U+h*dU, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h))/h;
     return R0;
 }
 int main(){
@@ -172,7 +172,7 @@ int main(){
                 temp_sigma=h[i][k]*gmres_V[i];
             }
             //FIXME:Uの部分行列を3*1にするのか2*1にするのか決める(ダミー変数も入力とみなす必要があるのか)
-            Eigen::Matrix<double, N_step, 1>temp_V=calAv(gmres_V[i])-temp_sigma;
+            Eigen::Matrix<double, N_step, 1>temp_V=calAv(U, X, gmres_V[i], t)-temp_sigma;
             double temp_size_V=temp_V.norm();
             gmres_V[i]=(1.0/temp_size_V)*temp_V;
         }
