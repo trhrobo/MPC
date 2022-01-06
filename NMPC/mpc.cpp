@@ -243,11 +243,8 @@ int main(){
         ------------------------------------------------------------------*/
         U+=dU*dt;
         //x(t)=x(t+dt)でxの更新
-        //FIXME:calcdXの引数に直接temp_x1, temp_x2を入れたら綺麗になる
         X+=calModel(X, u, t)*dt;
-        t=t+dt
-        if((goal-val) < error){
-            break;
-        }
+        t=t+dt;
+        //FIXME:終了条件を入れる
     }
 }
