@@ -52,14 +52,14 @@ Eigen::Matrix<double, x_size, 1> rphirx(Eigen::Matrix<double, x_size, 1> _X, dou
     Eigen::Matrix<double, x_size, 1> rphirx=_X;
     return rphirx;
 }
-Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eigen::Matrix<double, u_size, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_){
+Eigen::Matrix<double, x_size, 1> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eigen::Matrix<double, u_size, 1> _u_, Eigen::Matrix<double, x_size, 1> _lamda_){
     double u=_u_(0, 0);
     double rho=_u_(1, 0);
     double lamda2=_lamda_(1, 0);
     //vはダミー変数
     double v=std::sqrt(0.5*0.5-u*u);
     Eigen::Matrix<double, 2, 1> ans;
-    ans<<u+lamda2+2*rho*u
+    ans<<u+lamda2+2*rho*u,
          -0.01+2*rho*v;
     return ans;
 }
