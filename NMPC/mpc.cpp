@@ -29,15 +29,17 @@ constexpr double x1=10;
 constexpr double x2=10;
 //mはリスタートパラメータ
 constexpr int m=30;
-    
+
+//x={x1, x2}    
+constexpr int x_size=2;
 //各時刻における制御入力
-    //・入力が一つ
-    //・等式制約条件が一つ
-    //u={u, rho}
+//・入力が一つ
+//・等式制約条件が一つ
+//u={u, rho}
 constexpr int u_size=2;
 
-Eigen::Matrix<double, 2, 1> calModel(Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2, 1> _U, double _t){
-    Eigen::Matrix<double, 2, 1> model_F;
+Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size, 1> _U, double _t){
+    Eigen::Matrix<double, x_size, 1> model_F;
     double x1=_X(0, 0);
     double x2=_X(1, 0);
     //U={u, rho}
@@ -46,11 +48,11 @@ Eigen::Matrix<double, 2, 1> calModel(Eigen::Matrix<double, 2, 1> _X, Eigen::Matr
                ((1-x1*x1-x2*x2)*x2-x1+u);
     return model_F;
 }
-Eigen::Matrix<double, 2, 1> rphirx(Eigen::Matrix<double, 2, 1> _X, double _t){
-    Eigen::Matrix<double, 2, 1> rphirx=_X;
+Eigen::Matrix<double, x_size, 1> rphirx(Eigen::Matrix<double, x_size, 1> _X, double _t){
+    Eigen::Matrix<double, x_size, 1> rphirx=_X;
     return rphirx;
 }
-Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<double, 2, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_){
+Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eigen::Matrix<double, u_size, 1> _u_, Eigen::Matrix<double, 2, 1> _lamda_){
     double u=_u_(0, 0);
     double rho=_u_(1, 0);
     double lamda2=_lamda_(1, 0);
@@ -61,7 +63,7 @@ Eigen::Matrix<double, 2, 1> rHru(Eigen::Matrix<double, 2, 1> _x_, Eigen::Matrix<
          -0.01+2*rho*v;
     return ans;
 }
-Eigen::Matrix<double, 2, 1> rHrx(Eigen::Matrix<double, 2, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, 2, 1> _lamda_, double _t){
+Eigen::Matrix<double, 2, 1> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, 2, 1> _lamda_, double _t){
     double x1=_x_(0, 0);
     double x2=_x_(1, 0);
     double lamda1=_lamda_(0, 0);
@@ -76,7 +78,7 @@ Eigen::Matrix<double, 2, 1> Constraint(double _u_, double _x_, double _lamda_, d
     Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
     return ans;
 }
-Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _x, double _t){
+Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x, double _t){
     Eigen::Matrix<double, 2*N_step, 1> F;
     //制約なし
     //0~Nまでx1, x2, lamda1, lamda2
