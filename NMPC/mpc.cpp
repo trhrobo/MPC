@@ -48,68 +48,68 @@ Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, E
                ((1-x1*x1-x2*x2)*x2-x1+u);
     return model_F;
 }
-Eigen::Matrix<double, x_size, 1> rphirx(Eigen::Matrix<double, x_size, 1> _X, double _t){
-    Eigen::Matrix<double, x_size, 1> rphirx=_X;
+Eigen::Matrix<double, 1, x_size> rphirx(Eigen::Matrix<double, x_size, 1> _X, double _t){
+    Eigen::Matrix<double, 1, x_size> rphirx=_X.transpose();
     return rphirx;
 }
-Eigen::Matrix<double, x_size, 1> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eigen::Matrix<double, u_size, 1> _u_, Eigen::Matrix<double, x_size, 1> _lamda_){
+Eigen::Matrix<double, 1, x_size> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eigen::Matrix<double, u_size, 1> _u_, Eigen::Matrix<double, x_size, 1> _lamda_){
     double u=_u_(0, 0);
     double rho=_u_(1, 0);
     double lamda2=_lamda_(1, 0);
     //vはダミー変数
     double v=std::sqrt(0.5*0.5-u*u);
-    Eigen::Matrix<double, 2, 1> ans;
-    ans<<u+lamda2+2*rho*u,
-         -0.01+2*rho*v;
+    Eigen::Matrix<double, 1, x_size> ans;
+    ans<<u+lamda2+2*rho*u, -0.01+2*rho*v;
     return ans;
 }
-Eigen::Matrix<double, 2, 1> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, 2, 1> _lamda_, double _t){
+Eigen::Matrix<double, 1, x_size> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, x_size, 1> _lamda_, double _t){
     double x1=_x_(0, 0);
     double x2=_x_(1, 0);
     double lamda1=_lamda_(0, 0);
     double lamda2=_lamda_(1, 0);
-    Eigen::Matrix<double, 2, 1> ans;
-    ans<<x1-2*x1*x2*lamda2-lamda2,
-         x2+lamda1+(-3*x2*x2-x1*x1+1)*lamda2;
+    Eigen::Matrix<double, 1, x_size> ans;
+    ans<<x1-2*x1*x2*lamda2-lamda2, x2+lamda1+(-3*x2*x2-x1*x1+1)*lamda2;
     return ans;
 }
-Eigen::Matrix<double, 2, 1> Constraint(double _u_, double _x_, double _lamda_, double _rho_){
+Eigen::Matrix<double, x_size, 1> Constraint(double _u_, double _x_, double _lamda_, double _rho_){
     //制約なし
-    Eigen::Matrix<double, 2, 1> ans=Eigen::MatrixXd::Zero(2, 1);
+    Eigen::Matrix<double, x_size, 1> ans=Eigen::MatrixXd::Zero(x_size, 1);
     return ans;
 }
-Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x, double _t){
-    Eigen::Matrix<double, 2*N_step, 1> F;
+Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x, double _t){
+    Eigen::Matrix<double, x_size*N_step, 1> F;
     //制約なし
     //0~Nまでx1, x2, lamda1, lamda2
-    Eigen::Matrix<double, 2*N_step, 1> X_;
-    Eigen::Matrix<double, 2*N_step, 1> Lamda_;
+    Eigen::Matrix<double, x_size*N_step, 1> X_;
+    Eigen::Matrix<double, x_size*N_step, 1> Lamda_;
     //x_(x*)を求める
     //x0*(t)=x(t)を計算する
     //部分行列を用いる
-    X_.block(0, 0, 2, 1)=_x;
+    X_.block(0, 0, x_size, 1)=_x;
     //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
-    Eigen::Matrix<double, 2, 1> prev_temp_X_=_x;
+    Eigen::Matrix<double, x_size, 1> prev_X_=_x;
     for(int i=1; i < N_step; i++){
-        X_.block(2*i, 0, 2, 1)=prev_temp_X_+calModel(prev_temp_X_, _U.block(u_size*i, 0, u_size, 1), t+i*dtau)*dtau;
-        prev_temp_X_=X_.block(2*i, 0, 2, 1);
+        X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*i, 0, u_size, 1), t+i*dtau)*dtau;
+        prev_X_=X_.block(x_size*i, 0, x_size, 1);
     }
     //4
     //lamda_(lamda*)を求める
     //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
     //FIXME:サイズが違うかも2*N_step-2??
-    Lamda_.block(2*N_step, 0, 2, 1)=rphirx(X_.block(2*N_step, 0, 2, 1), t+T_predict);
+    Eigen::Matrix<double, 1, x_size> temp_rphirx=rphirx(X_.block(x_size*(N_step-1), 0, x_size, 1), t+T_predict);
+    Lamda_.block(x_size*(N_step-1), 0, x_size, 1)=temp_rphirx.transpose();
     //lamdai*=lamdai+1*+(rH/ru)^T*dtau
-    Eigen::Matrix<double, 2, 1> prev_temp_Lamda_=Lamda_.block(2*N_step, 0, 2, 1);
+    Eigen::Matrix<double, x_size, 1> prev_Lamda_=Lamda_.block(x_size*(N_step-1), 0, x_size, 1);
     //逆順で解く
-    for(int i=N_step-1; i > 0; --i){
-        Eigen::Matrix<double, 2, 1> temp_Lamda_;
-        //FIXME:X_の行列を転置行列にすればいい
-        Lamda_.block(i, 0, 2, 1)=prev_temp_Lamda_+rHrx(X_.block(2*i, 0, 2, 1), _U.block(2*i, 0, 2, 1), prev_temp_Lamda_, t+i*dtau)*dtau;
-        prev_temp_Lamda_=Lamda_.block(2*i, 0, 2, 1);
+    //N_step-2の理由(N_step-1で最後のLamdaのグループなので(上でそこは計算してる),それの前だからN-2)
+    for(int i=(N_step-2); i >= 0; --i){
+        Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), _U.block(u_size*i, 0, u_size, 1), prev_Lamda_, t+i*dtau);
+        Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+temp_rHrx.transpose()*dtau;
+        prev_Lamda_=Lamda_.block(x_size*i, 0, x_size, 1);
     }
     for(int i=0; i<N_step; i++){
-        F.block(2*i, 0, 2, 1)=rHru(X_.block(2*i, 0, 2, 1), _U.block(2*i, 0, 2, 1), Lamda_.block(2*i, 0, 2, 1));
+        Eigen::Matrix<double, 1, x_size> temp_rHru=rHru(X_.block(x_size*i, 0, x_size, 1), _U.block(u_size*i, 0, u_size, 1), Lamda_.block(x_size*i, 0, x_size, 1));
+        F.block(x_size*i, 0, 2, 1)=temp_rHru.transpose();
     }
     return F;
 }
