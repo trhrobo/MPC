@@ -111,21 +111,13 @@ Eigen::Matrix<double, 2*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> 
     }
     return F;
 }
-/*
-Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _U_, Eigen::Matrix<Eigen::Matrix<double, 2, 1>, N_step, 1> _X_, Eigen::Matrix<double, n, 1> _V){
-    Eigen::Matrix<double, 2*N_step, 1> Av=(calF(_U_+h*_V_, x+h*dx, 0)-calF(_U_, x+h*dx, 0))/h;
-    return Av;
-}
-*/
 Eigen::Matrix<double, 2*N_step, 1> calAv(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, Eigen::Matrix<double, 2*N_step, 1> _V, double _t){
-    //FIXME:計算を確認する
     Eigen::Matrix<double, 2*N_step, 1> Av=calF(_U+h*_V, _X+h*calModel(_X, _U.block(0, 0, 2 ,1), 0), 0)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), 0)/h;
     return Av;
 }
 Eigen::Matrix<double, 2*N_step, 1> calR0(Eigen::Matrix<double, 2*N_step, 1> _U, Eigen::Matrix<double, 2, 1> _X, double _t){
     //U'(0)=U0を使用する
     Eigen::Matrix<double, 2*N_step, 1> dU=_U;
-    //FIXME:行列に定数を掛け算する方法を探す
     Eigen::Matrix<double, 2*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X, 0))/h-(calF(_U+h*dU, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h))/h;
     return R0;
 }
@@ -230,7 +222,7 @@ int main(){
         dU=gmres_Xm;
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
-        /*U+=dU*dt;
+        U+=dU*dt;
         //x(t)=x(t+dt)でxの更新
         X+=calModel(X, u, t)*dt;
         t=t+dt;
