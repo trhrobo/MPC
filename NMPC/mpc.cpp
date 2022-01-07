@@ -141,12 +141,9 @@ int main(){
     Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Zero(u_size*N_step, 1);
     while(1){
         //u(t)=u0(t)をシステムへの制御入力とする
-        //u={u, dummy, rho}
         u=U.block(0, 0, u_size, 1);
         //gmres法を用いてdUを求める
         Eigen::Matrix<double, u_size*N_step, 1> dU=Eigen::MatrixXd::Zero(u_size*N_step, 1);
-        /*----------------------------------------------------------------
-        ------------------------------------------------------------------*/
         Eigen::Matrix<double, u_size*N_step, 1> gmres_Xm=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         Eigen::Matrix<double, u_size*N_step, 1> gmres_X0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         Eigen::Matrix<double, m, 1> gmres_Ym=Eigen::MatrixXd::Zero(m, 1);
@@ -157,25 +154,23 @@ int main(){
         gmres_R0=calR0(U, X, t);
         gmres_V[0]=gmres_R0.normalized();
         //Vmを作る
-        double h[m][m]{};
+        double h[m+1][m]{};
         for(int i=0; i<m; ++i){
-            for(int k=0; k<m; ++k){
-                h[k][i]=calAv(U, X, gmres_V[i], t).dot(gmres_V[k]);
+            for(int k=0; k<(i+1); ++k){
+                Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i], t);
+                h[i][k]=tempAv.dot(gmres_V[k]);
             }
             Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(N_step, 1);
-            for(int k=0; k<i; k++){
+            for(int k=0; k<(i+1); k++){
                 temp_sigma=h[i][k]*gmres_V[i];
             }
-            //FIXME:Uの部分行列を3*1にするのか2*1にするのか決める(ダミー変数も入力とみなす必要があるのか)
             Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i], t)-temp_sigma;
-            double temp_size_V=temp_V.norm();
-            gmres_V[i]=(1.0/temp_size_V)*temp_V;
+            h[i+1][i]=temp_V.norm();
+            gmres_V[i]=temp_V/h[i+1][i];
         }
-        for(int i=0; i<N_step; ++i){
-            for(int k=0; k<m; ++k){
-                //FIXME:代入を間違えているかも
-                gmres_Vm(i, k)=gmres_V[i][k];
-            }
+        //上で作ったgmres_V[i]をgmres_Vmに代入する
+        for(int i=0; i<m; ++i){
+                gmres_Vm.col(i)=gmres_V[i];
         }
         //最小化問題を解く
         //FIXME:c, s, rを求める必要がある
@@ -187,15 +182,13 @@ int main(){
         Eigen::Matrix<double, m+1, m> _Hm;
         for(int i=0; i<m; ++i){
             for(int k=0; k<m; ++k){
-                //FIXME:代入を間違えているかも
                 Hm(i, k)=h[i][k];
             }
         }
         Eigen::Matrix<double, 1, m> temp_Hm=Eigen::MatrixXd::Zero(1, m);
-        //FIXME:代入法を間違えているかも
         temp_Hm(0, m-1)=h[m][m-1];
-        _Hm = (Hm,
-               temp_Hm);
+        _Hm.block(0, 0, m, m)=Hm;
+        _Hm.block(m, 0, 1, m)=temp_Hm;
         //Givens回転を用いて_Hmを上三角行列に変換する
         Eigen::Matrix<double, m+1, m+1> Qm=Eigen::MatrixXd::Identity(m+1, m+1);
         for(int i=0; i<m; i++){
