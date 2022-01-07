@@ -194,16 +194,17 @@ int main(){
         for(int i=0; i<m; i++){
             Eigen::Matrix<double, m+1, m+1> Omega=Eigen::MatrixXd::Identity(m+1, m+1);
             //TODO:回転行列をその部分に入れるようにした方が綺麗
-            Omega(i, i)=c[i];
-            Omega(i+1, i)=-1*s[i];
-            Omega(i, i+1)=s[i];
-            Omega(i+1, i+1)=c[i];
+            Eigen::Matrix<double, 2, 2> OmegaRot;
+            OmegaRot(0, 0)=c[i];
+            OmegaRot(0, 1)=s[i];
+            OmegaRot(1, 0)=-1*s[i];
+            OmegaRot(1, 1)=c[i];
+            Omega.block(i, i, 2, 2)=OmegaRot;
             Qm*=Omega;
         }
         Eigen::Matrix<double, m+1, m> _Rm;
         _Rm=Qm*_Hm;
-        //FIXME:_Rmの最下段を取り除いたものをRmとする必要がある
-        Eigen::Matrix<double, m, m> Rm=_Rm;
+        Eigen::Matrix<double, m, m> Rm=_Rm.block(0, 0, m, m);
         //gmを作る
         double g[m]{};
         Eigen::Matrix<double, m, 1> Gm;
@@ -213,8 +214,8 @@ int main(){
                 temp_prod_s*=s[k];
             }
             //FIXME:std::pow(-1, i-1)を偶数,奇数で判別した方が速くなる
-            g[i]=std::pow(-1, i-1)*gmres_R0.norm()*c[i]*temp_prod_s;
-            Gm(0, i)=g[i];
+            g[i]=std::pow(-1, i)*gmres_R0.norm()*c[i]*temp_prod_s;
+            Gm(i, 0)=g[i];
         }
         //後退代入によってRm*Ym=Gmを解く
         double temp_sigma_back;
