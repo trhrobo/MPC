@@ -136,7 +136,6 @@ int main(){
     Eigen::Matrix<double, u_size, 1> u=Eigen::MatrixXd::Zero(u_size, 1);
     Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Zero(u_size*N_step, 1);
     while(1){
-        std::cout << "----------------------------------------------------" << std::endl;
         //u(t)=u0(t)をシステムへの制御入力とする
         u=U.block(0, 0, u_size, 1);
         //gmres法を用いてdUを求める
@@ -170,10 +169,6 @@ int main(){
                 gmres_Vm.col(i)=gmres_V[i];
         }
         //最小化問題を解く
-        //FIXME:c, s, rを求める必要がある
-        double c[m]{};
-        double s[m]{}; 
-        double r[m]{};
         //Rmを作る
         Eigen::Matrix<double, m, m> Hm;
         Eigen::Matrix<double, m+1, m> _Hm;
@@ -187,10 +182,35 @@ int main(){
         _Hm.block(0, 0, m, m)=Hm;
         _Hm.block(m, 0, 1, m)=temp_Hm;
         //Givens回転を用いて_Hmを上三角行列に変換する
-        Eigen::Matrix<double, m+1, m+1> Qm=Eigen::MatrixXd::Identity(m+1, m+1);
+        //FIXME:c, s, rを求める必要がある
+        double c[m]{};
+        double s[m]{}; 
+        double r[m]{};
+        c[0]=h[0][0]/std::sqrt(h[0][0]*h[0][0]+h[1][0]*h[1][0]);
+        s[0]=h[1][0]/std::sqrt(h[0][0]*h[0][0]+h[1][0]*h[1][0]);
+        Eigen::Matrix<double, m+1, m+1> Omega0=Eigen::MatrixXd::Identity(m+1, m+1);
+        Eigen::Matrix<double, 2, 2> OmegaRot;
+        OmegaRot(0, 0)=c[0];
+        OmegaRot(0, 1)=s[0];
+        OmegaRot(1, 0)=-1*s[0];
+        OmegaRot(1, 1)=c[0];
+        Omega0.block(0, 0, 2, 2)=OmegaRot;
+        Eigen::Matrix<double, m+1, m> _Rm=Omega0*_Hm;
+        Eigen::Matrix<double, m+1, m> prev_Rm;
+        for(int i=1; i<m; i++){
+            c[i]=_Rm(m-1, m-1)/std::sqrt(_Rm(m-1, m-1)*_Rm(m-1, m-1)+h[m][m-1]*h[m][m-1]);
+            s[i]=h[m][m-1]/std::sqrt(_Rm(m-1, m-1)*_Rm(m-1, m-1)+h[m][m-1]*h[m][m-1]);
+            Eigen::Matrix<double, m+1, m+1> Omega=Eigen::MatrixXd::Identity(m+1, m+1);
+            OmegaRot(0, 0)=c[i];
+            OmegaRot(0, 1)=s[i];
+            OmegaRot(1, 0)=-1*s[i];
+            OmegaRot(1, 1)=c[i];
+            Omega.block(i, i, 2, 2)=OmegaRot;
+            _Rm=Omega*_Rm;
+        }
+        /*Eigen::Matrix<double, m+1, m+1> Qm=Eigen::MatrixXd::Identity(m+1, m+1);
         for(int i=0; i<m; i++){
             Eigen::Matrix<double, m+1, m+1> Omega=Eigen::MatrixXd::Identity(m+1, m+1);
-            //TODO:回転行列をその部分に入れるようにした方が綺麗
             Eigen::Matrix<double, 2, 2> OmegaRot;
             OmegaRot(0, 0)=c[i];
             OmegaRot(0, 1)=s[i];
@@ -201,6 +221,7 @@ int main(){
         }
         Eigen::Matrix<double, m+1, m> _Rm;
         _Rm=Qm*_Hm;
+        */
         Eigen::Matrix<double, m, m> Rm=_Rm.block(0, 0, m, m);
         //gmを作る
         double g[m]{};
