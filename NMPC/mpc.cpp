@@ -77,25 +77,21 @@ Eigen::Matrix<double, x_size, 1> Constraint(double _u_, double _x_, double _lamd
     return ans;
 }
 Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x, double _t){
-    std::cout << "f0" << std::endl;
     Eigen::Matrix<double, x_size*N_step, 1> F;
     //制約なし
     //0~Nまでx1, x2, lamda1, lamda2
     Eigen::Matrix<double, x_size*N_step, 1> X_;
     Eigen::Matrix<double, x_size*N_step, 1> Lamda_;
-    std::cout << "f1" << std::endl;
     //x_(x*)を求める
     //x0*(t)=x(t)を計算する
     //部分行列を用いる
     X_.block(0, 0, x_size, 1)=_x;
     //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
     Eigen::Matrix<double, x_size, 1> prev_X_=_x;
-    std::cout << "f2" << std::endl; 
     for(int i=1; i < N_step; i++){
         X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*i, 0, u_size, 1), t+i*dtau)*dtau;
         prev_X_=X_.block(x_size*i, 0, x_size, 1);
     }
-    std::cout << "f3" << std::endl;
     //4
     //lamda_(lamda*)を求める
     //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
@@ -105,7 +101,6 @@ Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step
     Eigen::Matrix<double, x_size, 1> prev_Lamda_=Lamda_.block(x_size*(N_step-1), 0, x_size, 1);
     //逆順で解く
     //N_step-2の理由(N_step-1で最後のLamdaのグループなので(上でそこは計算してる),それの前だからN-2)
-    std::cout << "f4" << std::endl;
     for(int i=(N_step-2); i >= 0; --i){
         Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), _U.block(u_size*i, 0, u_size, 1), prev_Lamda_, t+i*dtau);
         Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+temp_rHrx.transpose()*dtau;
@@ -118,15 +113,10 @@ Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step
     return F;
 }
 Eigen::Matrix<double, x_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, x_size*N_step, 1> _V, double _t){
-    std::cout << "y1" << std::endl;
     Eigen::Matrix<double, u_size, 1> tempU= _U.block(0, 0, u_size,1);
-    std::cout << "p" << std::endl;
     Eigen::Matrix<double, x_size*N_step, 1> temp1=calF(_U+h*_V, _X+h*calModel(_X, tempU, 0), 0);
-    std::cout << "e" << std::endl;
     Eigen::Matrix<double, x_size*N_step, 1> temp2=calF(_U, _X+h*calModel(_X, _U.block(0, 0, u_size, 1), 0), 0);
-    std::cout << "u" << std::endl;
     Eigen::Matrix<double, x_size*N_step, 1> Av=(temp1-temp2)/h;
-    std::cout << "s" << std::endl;
     return Av;
 }
 Eigen::Matrix<double, x_size*N_step, 1> calR0(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _X, double _t){
@@ -145,8 +135,8 @@ int main(){
     //U(0)を決定する
     Eigen::Matrix<double, u_size, 1> u=Eigen::MatrixXd::Zero(u_size, 1);
     Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Zero(u_size*N_step, 1);
-    std::cout << "1" << std::endl;
     while(1){
+        std::cout << "----------------------------------------------------" << std::endl;
         //u(t)=u0(t)をシステムへの制御入力とする
         u=U.block(0, 0, u_size, 1);
         //gmres法を用いてdUを求める
@@ -163,31 +153,22 @@ int main(){
         //Vmを作る
         double h[m+1][m]{};
         for(int i=0; i<m; ++i){
-            std::cout << "----------------" << std::endl;
-            std::cout << "2" << std::endl;
             for(int k=0; k<(i+1); ++k){
-                std::cout << "_k=" << k << std::endl;
-                std::cout << "_i=" << i << std::endl;
                 Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i], t);
                 h[i][k]=tempAv.dot(gmres_V[k]);
             }
-            std::cout << "2_1" << std::endl;
             Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
             for(int k=0; k<(i+1); k++){
-                std::cout << "k=" << k << std::endl;
                 temp_sigma=h[i][k]*gmres_V[i];
             }
-            std::cout << "2_2" << std::endl;
             Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i], t)-temp_sigma;
             h[i+1][i]=temp_V.norm();
             gmres_V[i]=temp_V/h[i+1][i];
         }
-        std::cout << "3" << std::endl;
         //上で作ったgmres_V[i]をgmres_Vmに代入する
         for(int i=0; i<m; ++i){
                 gmres_Vm.col(i)=gmres_V[i];
         }
-        std::cout << "4" << std::endl;
         //最小化問題を解く
         //FIXME:c, s, rを求める必要がある
         double c[m]{};
@@ -196,18 +177,15 @@ int main(){
         //Rmを作る
         Eigen::Matrix<double, m, m> Hm;
         Eigen::Matrix<double, m+1, m> _Hm;
-        std::cout << "5" << std::endl;
         for(int i=0; i<m; ++i){
             for(int k=0; k<m; ++k){
                 Hm(i, k)=h[i][k];
             }
         }
-        std::cout << "6" << std::endl;
         Eigen::Matrix<double, 1, m> temp_Hm=Eigen::MatrixXd::Zero(1, m);
         temp_Hm(0, m-1)=h[m][m-1];
         _Hm.block(0, 0, m, m)=Hm;
         _Hm.block(m, 0, 1, m)=temp_Hm;
-        std::cout << "7" << std::endl;
         //Givens回転を用いて_Hmを上三角行列に変換する
         Eigen::Matrix<double, m+1, m+1> Qm=Eigen::MatrixXd::Identity(m+1, m+1);
         for(int i=0; i<m; i++){
@@ -221,11 +199,9 @@ int main(){
             Omega.block(i, i, 2, 2)=OmegaRot;
             Qm*=Omega;
         }
-        std::cout << "7" << std::endl;
         Eigen::Matrix<double, m+1, m> _Rm;
         _Rm=Qm*_Hm;
         Eigen::Matrix<double, m, m> Rm=_Rm.block(0, 0, m, m);
-        std::cout << "8" << std::endl;
         //gmを作る
         double g[m]{};
         Eigen::Matrix<double, m, 1> Gm;
@@ -238,7 +214,6 @@ int main(){
             g[i]=std::pow(-1, i)*gmres_R0.norm()*c[i]*temp_prod_s;
             Gm(i, 0)=g[i];
         }
-        std::cout << "9" << std::endl;
         //後退代入によってRm*Ym=Gmを解く
         double temp_sigma_back;
         for(int i=(m-1); i>=0; --i){
@@ -248,9 +223,7 @@ int main(){
             }
             gmres_Ym[i]=(Gm[i]-temp_sigma_back)/Rm(i, i);
         }
-        std::cout << "10" << std::endl;
         gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
-        std::cout << "11" << std::endl;
         dU=gmres_Xm;
         /*----------------------------------------------------------------
         ------------------------------------------------------------------*/
