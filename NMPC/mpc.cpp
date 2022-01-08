@@ -15,14 +15,14 @@
 
 /*各種定数設定*/
 //目標値に対する誤差
-constexpr double error=0.00001;
+constexpr double error=0.001;
 constexpr double dt=0.001;
 //予測ステップ
 constexpr int N_step=10;
 constexpr double T_predict=10;
 constexpr double dtau=T_predict/N_step;
-constexpr double zeta=0.1;
-constexpr double h=0.001;
+constexpr double zeta=100.0;
+constexpr double h=0.01;
 //初期値設定
 double t=0;
 constexpr double x1=10;
@@ -182,7 +182,6 @@ int main(){
         _Hm.block(0, 0, m, m)=Hm;
         _Hm.block(m, 0, 1, m)=temp_Hm;
         //Givens回転を用いて_Hmを上三角行列に変換する
-        //FIXME:c, s, rを求める必要がある
         double c[m]{};
         double s[m]{}; 
         double r[m]{};
@@ -208,20 +207,6 @@ int main(){
             Omega.block(i, i, 2, 2)=OmegaRot;
             _Rm=Omega*_Rm;
         }
-        /*Eigen::Matrix<double, m+1, m+1> Qm=Eigen::MatrixXd::Identity(m+1, m+1);
-        for(int i=0; i<m; i++){
-            Eigen::Matrix<double, m+1, m+1> Omega=Eigen::MatrixXd::Identity(m+1, m+1);
-            Eigen::Matrix<double, 2, 2> OmegaRot;
-            OmegaRot(0, 0)=c[i];
-            OmegaRot(0, 1)=s[i];
-            OmegaRot(1, 0)=-1*s[i];
-            OmegaRot(1, 1)=c[i];
-            Omega.block(i, i, 2, 2)=OmegaRot;
-            Qm*=Omega;
-        }
-        Eigen::Matrix<double, m+1, m> _Rm;
-        _Rm=Qm*_Hm;
-        */
         Eigen::Matrix<double, m, m> Rm=_Rm.block(0, 0, m, m);
         //gmを作る
         double g[m]{};
@@ -253,5 +238,6 @@ int main(){
         X+=calModel(X, u, t)*dt;
         t=t+dt;
         //FIXME:終了条件を入れる*/
+        std::cout << X(0, 0) << " " << X(1, 0) << std::endl;
     }
 }
