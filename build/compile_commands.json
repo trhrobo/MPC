@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/tsuruharakota/MPC/build",
+  "command": "/usr/bin/x86_64-linux-gnu-g++-7    -g   -o CMakeFiles/NMPC.dir/NMPC/mpc.cpp.o -c /home/tsuruharakota/MPC/NMPC/mpc.cpp",
+  "file": "/home/tsuruharakota/MPC/NMPC/mpc.cpp"
+}
+]

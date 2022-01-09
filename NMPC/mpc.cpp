@@ -113,16 +113,20 @@ Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step
     return F;
 }
 Eigen::Matrix<double, x_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, x_size*N_step, 1> _V, double _t){
+    //tempUは合ってるの?
     Eigen::Matrix<double, u_size, 1> tempU= _U.block(0, 0, u_size,1);
     Eigen::Matrix<double, x_size*N_step, 1> temp1=calF(_U+h*_V, _X+h*calModel(_X, tempU, 0), 0);
-    Eigen::Matrix<double, x_size*N_step, 1> temp2=calF(_U, _X+h*calModel(_X, _U.block(0, 0, u_size, 1), 0), 0);
+    Eigen::Matrix<double, x_size*N_step, 1> temp2=calF(_U,      _X+h*calModel(_X, tempU, 0), 0);
     Eigen::Matrix<double, x_size*N_step, 1> Av=(temp1-temp2)/h;
     return Av;
 }
 Eigen::Matrix<double, x_size*N_step, 1> calR0(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _X, double _t){
     //U'(0)=U0を使用する
     Eigen::Matrix<double, x_size*N_step, 1> dU=_U;
-    Eigen::Matrix<double, x_size*N_step, 1> R0=-1*zeta*calF(_U, _X, 0) -(calF(_U, _X+h*calModel(_X, _U.block(0, 0, u_size, 1), 0), h)-calF(_U, _X, 0))/h-(calF(_U+h*dU, _X+h*calModel(_X, _U.block(0, 0, u_size, 1), 0), h)-calF(_U, _X+h*calModel(_X, _U.block(0, 0, 2, 1), 0), h))/h;
+    Eigen::Matrix<double, u_size, 1> tempU= _U.block(0, 0, u_size,1);
+    Eigen::Matrix<double, x_size*N_step, 1> temp1=(calF(_U,      _X+h*calModel(_X, tempU, 0), h)-calF(_U, _X, 0))/h;
+    Eigen::Matrix<double, x_size*N_step, 1> temp2=(calF(_U+h*dU, _X+h*calModel(_X, tempU, 0), h)-calF(_U, _X+h*calModel(_X, tempU, 0), h))/h;
+    Eigen::Matrix<double, x_size*N_step, 1> R0=-1*zeta*calF(_U, _X, 0)-temp1-temp2;
     return R0;
 }
 int main(){
@@ -148,6 +152,7 @@ int main(){
         Eigen::Matrix<double, u_size*N_step, 1> gmres_R0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         //初期残差gmres_R0を求める
         gmres_R0=calR0(U, X, t);
+        std::cout << gmres_R0 << std::endl;
         gmres_V[0]=gmres_R0.normalized();
         //Vmを作る
         double h[m+1][m]{};
