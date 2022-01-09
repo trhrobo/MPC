@@ -20,7 +20,7 @@
 /*各種定数設定*/
 //目標値に対する誤差
 constexpr double error=0.001;
-constexpr double dt=0.001;
+constexpr double dt=0.01;
 //予測ステップ
 constexpr int N_step=10;
 constexpr double T_predict=1;
@@ -38,8 +38,9 @@ constexpr int m=30;
 constexpr int x_size=2;
 //各時刻における制御入力
 //・入力が一つ
+//・ダミー入力が一つ
 //・等式制約条件が一つ
-//u={u, rho}
+//u={u, v, rho}
 constexpr int u_size=2;
 
 Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size, 1> _U, double _t){
@@ -66,6 +67,7 @@ Eigen::Matrix<double, 1, x_size> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eige
     std::cout << "lamda2=" << lamda2 << std::endl;
     #endif
     //vはダミー変数
+    if(u>0.5)std::cout << "err" << u << std::endl;
     double v=std::sqrt(0.5*0.5-u*u);
     Eigen::Matrix<double, 1, x_size> ans;
     ans<<u+lamda2+2*rho*u, -0.01+2*rho*v;
@@ -219,7 +221,7 @@ int main(){
             }
             Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
             for(int k=0; k<(i+1); k++){
-                temp_sigma=h[k][i]*gmres_V[k];
+                temp_sigma+=h[k][i]*gmres_V[k];
             }
             Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i], t)-temp_sigma;
             h[i+1][i]=temp_V.norm();
@@ -233,7 +235,7 @@ int main(){
             }
             c[i]=r[i][i]/std::sqrt(r[i][i]*r[i][i]+h[i+1][i]*h[i+1][i]);
             s[i]=h[i+1][i]/std::sqrt(r[i][i]*r[i][i]+h[i+1][i]*h[i+1][i]);
-            g[i+1]=-s[i]*g[i];
+            g[i+1]=-1*s[i]*g[i];
             g[i]=c[i]*g[i];
             r[i][i]=c[i]*r[i][i]+s[i]*h[i+1][i];
         }
@@ -262,6 +264,8 @@ int main(){
         gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
         dU=gmres_Xm;
         U+=dU*dt;
+        std::cout << "U=" << std::endl;
+        std::cout << U << std::endl;
         //x(t)=x(t+dt)でxの更新
         X+=calModel(X, u, t)*dt;
         t=t+dt;
