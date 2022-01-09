@@ -59,10 +59,19 @@ Eigen::Matrix<double, 1, x_size> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eige
     double u=_u_(0, 0);
     double rho=_u_(1, 0);
     double lamda2=_lamda_(1, 0);
+    #if DEBUG0
+    std::cout << "u=" << u << std::endl;
+    std::cout << "rho=" << rho << std::endl;
+    std::cout << "lamda2=" << lamda2 << std::endl;
+    #endif
     //vはダミー変数
     double v=std::sqrt(0.5*0.5-u*u);
     Eigen::Matrix<double, 1, x_size> ans;
     ans<<u+lamda2+2*rho*u, -0.01+2*rho*v;
+    #if DEBUG0
+    std::cout << "ans" << std::endl;
+    std::cout << ans << std::endl;
+    #endif
     return ans;
 }
 Eigen::Matrix<double, 1, x_size> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, x_size, 1> _lamda_, double _t){
@@ -171,7 +180,11 @@ int main(){
     //U(0)を決定する
     Eigen::Matrix<double, u_size, 1> u=Eigen::MatrixXd::Zero(u_size, 1);
     //Uが0だとおかしくなる
-    Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Ones(u_size*N_step, 1);
+    Eigen::Matrix<double, u_size*N_step, 1> U;
+    for(int i=0; i<u_size*N_step; ++i){
+        //0.5<u<0.5
+        U(i, 0)=0.1;
+    }
     while(1){
         //u(t)=u0(t)をシステムへの制御入力とする
         u=U.block(0, 0, u_size, 1);
