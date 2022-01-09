@@ -7,9 +7,10 @@
 #include "/usr/include/eigen3/Eigen/LU"
 //#include "matplotlibcpp.h"
 
-#define DEBUG0 1
+#define DEBUG0 0
 #define DEBUG1 0
 #define DEBUG2 0
+#define DEBUG3 0
 //namespace plt = matplotlibcpp;
 
 /*
@@ -196,16 +197,81 @@ int main(){
         Eigen::Matrix<double, u_size*N_step, 1> gmres_V[m];
         Eigen::Matrix<double, u_size*N_step, m> gmres_Vm=Eigen::MatrixXd::Zero(u_size*N_step, m);
         Eigen::Matrix<double, u_size*N_step, 1> gmres_R0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
+        //gmres_X0を設定する
+        gmres_X0=U;
         //初期残差gmres_R0を求める
         gmres_R0=calR0(U, X, t);
-        //std::cout << gmres_R0 << std::endl;
         gmres_V[0]=gmres_R0.normalized();
+        double g[m+1]{};
+        g[0]=gmres_R0.norm();
+        double h[m+1][m]{};
+        double r[m][m]{};
+        double c[m]{};
+        double s[m]{}; 
+        for(int i=0; i<m; ++i){
+            for(int k=0; k<(i+1); ++k){
+                Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i], t);
+                h[k][i]=tempAv.dot(gmres_V[k]);
+                #if DEBUG3
+                std::cout << "i=" << i << " " << "k=" << k << std::endl;
+                std::cout << tempAv << std::endl;
+                #endif
+            }
+            Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
+            for(int k=0; k<(i+1); k++){
+                temp_sigma=h[k][i]*gmres_V[k];
+            }
+            Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i], t)-temp_sigma;
+            h[i+1][i]=temp_V.norm();
+            gmres_V[i+1]=temp_V/h[i+1][i];
+            r[0][i]=h[0][i];
+            for(int k=0; k<((i+1)-1); ++k){
+                double temp1=c[k]*r[k][i]+s[k]*h[k+1][i];
+                double temp2=-1*s[k]*r[k][i]+c[k]*h[k+1][i];
+                r[k][i]=temp1;
+                r[k+1][i]=temp2;
+            }
+            c[i]=r[i][i]/std::sqrt(r[i][i]*r[i][i]+h[i+1][i]*h[i+1][i]);
+            s[i]=h[i+1][i]/std::sqrt(r[i][i]*r[i][i]+h[i+1][i]*h[i+1][i]);
+            g[i+1]=-s[i]*g[i];
+            g[i]=c[i]*g[i];
+            r[i][i]=c[i]*r[i][i]+s[i]*h[i+1][i];
+        }
+        Eigen::Matrix<double, m, 1> Gm;
+        for(int i=0; i<m; ++i){
+            Gm(i, 0)=g[i];
+        }
+        Eigen::Matrix<double, m, m> Rm;
+        for(int i=0; i<m; ++i){
+            for(int k=0; k<m; ++k){
+                Rm(i, k)=r[i][k];
+            }
+        }
+        //上で作ったgmres_V[i]をgmres_Vmに代入する
+        for(int i=0; i<m; ++i){
+                gmres_Vm.col(i)=gmres_V[i];
+        }
+        //後退代入によってRm*Ym=Gmを解く
+        for(int i=(m-1); i>=0; --i){
+            double temp_sigma_back=0;
+            for(int k=(i+1); k<m; ++k){
+                temp_sigma_back+=Rm(i, k)*gmres_Ym[k];
+            }
+            gmres_Ym[i]=(Gm[i]-temp_sigma_back)/Rm(i, i);
+        }
+        gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
+        dU=gmres_Xm;
+        /*
         //Vmを作る
         double h[m+1][m]{};
         for(int i=0; i<m; ++i){
             for(int k=0; k<(i+1); ++k){
                 Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i], t);
                 h[i][k]=tempAv.dot(gmres_V[k]);
+                #if DEBUG3
+                std::cout << "i=" << i << " " << "k=" << k << std::endl;
+                std::cout << tempAv << std::endl;
+                #endif
             }
             Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
             for(int k=0; k<(i+1); k++){
@@ -272,23 +338,22 @@ int main(){
             Gm(i, 0)=g[i];
         }
         //後退代入によってRm*Ym=Gmを解く
-        double temp_sigma_back;
         for(int i=(m-1); i>=0; --i){
             double temp_sigma_back=0;
-            for(int k=i; k<m; ++k){
-                temp_sigma_back+=Gm[k]*gmres_Ym[k];
+            for(int k=(i+1); k<m; ++k){
+                temp_sigma_back+=Rm(i, k)*gmres_Ym[k];
             }
             gmres_Ym[i]=(Gm[i]-temp_sigma_back)/Rm(i, i);
         }
         gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
         dU=gmres_Xm;
-        /*----------------------------------------------------------------
-        ------------------------------------------------------------------*/
+        */
         U+=dU*dt;
         //x(t)=x(t+dt)でxの更新
         X+=calModel(X, u, t)*dt;
         t=t+dt;
         //FIXME:終了条件を入れる*/
         std::cout << X(0, 0) << " " << X(1, 0) << std::endl;
+        if(X(0, 0)<error && X(1, 0) < error)break;
     }
 }
