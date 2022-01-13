@@ -20,15 +20,16 @@
 /*各種定数設定*/
 //目標値に対する誤差
 constexpr double error=0.001;
-constexpr double dt=0.01;
+constexpr double _dt=0.01;
+constexpr int iteration_time=20;
+constexpr double iteration_num=iteration_time/dt;
 //予測ステップ
 constexpr int N_step=10;
-constexpr double T_predict=1;
-constexpr double dtau=T_predict/N_step;
+constexpr double alpha=0.5;
+constexpr double tf=1.0;
 constexpr double zeta=100.0;
 constexpr double h=0.01;
 //初期値設定
-double t=0;
 constexpr double x1=2;
 constexpr double x2=0;
 //mはリスタートパラメータ
@@ -188,7 +189,9 @@ int main(){
         //0.5<u<0.5
         U(i, 0)=0.1;
     }
-    while(1){
+    for(int i=0; i<iteration_num; ++i){
+        double time=i*_dt;
+        double dt=tf*(1-std::exp(-alpha*time))/N_step;   
         //u(t)=u0(t)をシステムへの制御入力とする
         u=U.block(0, 0, u_size, 1);
         //gmres法を用いてdUを求める
