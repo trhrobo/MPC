@@ -5,8 +5,8 @@
 #include "/usr/include/eigen3/Eigen/Sparse"
 #include "/usr/include/eigen3/Eigen/Core"
 #include "/usr/include/eigen3/Eigen/LU"
-//#include "matplotlibcpp.h"
-//namespace plt = matplotlibcpp;
+#include "matplotlibcpp.h"
+namespace plt = matplotlibcpp;
 
 /*
 非線形最適制御入門(例8.1)
@@ -48,6 +48,14 @@ class NMPC{
                 U((u_size*i)+2, 0)=0.011;
             }
         }
+        void figGraph(std::vector<double> _time){
+            plt::clf();
+            plt::named_plot("x1", _time, save_x1);
+            plt::named_plot("x2", _time, save_x2);
+            //plt::named_plot("u", _time, save_u);
+            plt::legend();
+            plt::pause(0.01);
+        }
         void updateState(Eigen::Matrix<double, u_size, 1> _u){
             //状態Xを更新する
             double k0[2]{};
@@ -58,6 +66,9 @@ class NMPC{
             double x1=X(0, 0);
             double x2=X(1, 0);
             double u=U(0, 0);
+            save_x1.push_back(x1);
+            save_x2.push_back(x2);
+            save_u.push_back(u);
             for(int i=0; i<2; ++i){
                 k0[i]=dt*Func(x1, x2, u, i);
             }
@@ -74,6 +85,7 @@ class NMPC{
             x2+=(k0[1]+2*k1[0]+2*k2[0]+k3[0])/6;
             X(0, 0)=x1;
             X(1, 0)=x2;
+            std::cout<<x1<<" "<<x2<<std::endl;
         }
         double Func(double _x1, double _x2, double _u, double i){
             double ans{};
@@ -128,6 +140,7 @@ class NMPC{
             gmres_X0=U;
             //初期残差gmres_R0を求める
             gmres_R0=calR0();
+            //std::cout<<gmres_R0<<std::endl;
             gmres_V[0]=gmres_R0.normalized();
             double g[m+1]{};
             g[0]=gmres_R0.norm();
@@ -137,16 +150,21 @@ class NMPC{
             double s[m]{}; 
             for(int i=0; i<m; ++i){
                 for(int k=0; k<(i+1); ++k){
-                    Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i]);
+                    Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(gmres_V[i]);
+                    //if(i==0)std::cout<<tempAv<<std::endl;
                     h[k][i]=tempAv.dot(gmres_V[k]);
                 }
                 Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
                 for(int k=0; k<(i+1); k++){
                     temp_sigma+=h[k][i]*gmres_V[k];
                 }
-                Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i])-temp_sigma;
+                //if(i==0)std::cout<<temp_sigma<<std::endl;
+                Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(gmres_V[i])-temp_sigma;
+                //if(i==0)std::cout<<temp_V<<std::endl;
                 h[i+1][i]=temp_V.norm();
+                //if(i==0)std::cout<<h[1][0]<<std::endl;
                 gmres_V[i+1]=temp_V/h[i+1][i];
+                //if(i==0)std::cout<<gmres_V[1]<<std::endl;
                 r[0][i]=h[0][i];
                 for(int k=0; k<((i+1)-1); ++k){
                     double temp1=c[k]*r[k][i]+s[k]*h[k+1][i];
@@ -159,7 +177,7 @@ class NMPC{
                 g[i+1]=-1*s[i]*g[i];
                 g[i]=c[i]*g[i];
                 r[i][i]=c[i]*r[i][i]+s[i]*h[i+1][i];
-                if(i==0)std::cout<<c[0]<<" "<<s[0]<<" "<<g[1]<<" "<<g[0]<<" "<<r[0]<<std::endl;
+                //if(i==0)std::cout<<c[0]<<" "<<s[0]<<" "<<g[1]<<" "<<g[0]<<" "<<r[0]<<std::endl;
             }
             Eigen::Matrix<double, m, 1> Gm;
             for(int i=0; i<m; ++i){
@@ -200,7 +218,7 @@ class NMPC{
             //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
             Eigen::Matrix<double, x_size, 1> prev_X_=_x;
             for(int i=1; i < N_step; i++){
-                X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, U.block(u_size*i, 0, u_size, 1))*dt;
+                X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*i, 0, u_size, 1))*dt;
                 prev_X_=X_.block(x_size*i, 0, x_size, 1);
             }
             //4
@@ -213,32 +231,32 @@ class NMPC{
             //逆順で解く
             //N_step-2の理由(N_step-1で最後のLamdaのグループなので(上でそこは計算してる),それの前だからN-2)
             for(int i=(N_step-2); i >= 0; --i){
-                Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), U.block(u_size*i, 0, u_size, 1), prev_Lamda_);
+                Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), _U.block(u_size*i, 0, u_size, 1), prev_Lamda_);
                 Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+temp_rHrx.transpose()*dt;
                 prev_Lamda_=Lamda_.block(x_size*i, 0, x_size, 1);
             }
             for(int i=0; i<N_step; i++){
                 double lam_2=Lamda_((i*x_size)+1, 0);
-                double u=U(i*u_size, 0);
-                double v=U((i*u_size+1), 0);
-                double rho=U((i*u_size+2), 0);
+                double u=_U(i*u_size, 0);
+                double v=_U((i*u_size+1), 0);
+                double rho=_U((i*u_size+2), 0);
                 F((i*f_size),   0)=u+lam_2+2.0*rho*u;
                 F((i*f_size)+1, 0)=-0.01+2.0*rho*v;
                 F((i*f_size)+2, 0)=u*u+v*v-0.5*0.5;
             }
             return F;
         }   
-        Eigen::Matrix<double, u_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1>_U, Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size*N_step, 1> _V){
-            Eigen::Matrix<double, u_size, 1> U0= _U.block(0, 0, u_size,1);
+        Eigen::Matrix<double, u_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1> _V){
+            Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
             Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
-            Eigen::Matrix<double, u_size*N_step, 1> temp1=calF(_U+h*_V, _X+dX);
-            Eigen::Matrix<double, u_size*N_step, 1> temp2=calF(_U,      _X+dX);
+            Eigen::Matrix<double, u_size*N_step, 1> temp1=calF(U+(_V*h), X+dX);
+            Eigen::Matrix<double, u_size*N_step, 1> temp2=calF(U, X+dX);
             Eigen::Matrix<double, u_size*N_step, 1> Av=(temp1-temp2)/h;
             return Av;
         }
         Eigen::Matrix<double, u_size*N_step, 1> calR0(){
             //U'(0)=U0を使用する
-            Eigen::Matrix<double, u_size*N_step, 1> dU=U;
+            Eigen::Matrix<double, u_size*N_step, 1> dU=U*h;
             Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
             Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
             Eigen::Matrix<double, u_size*N_step, 1> temp1=(calF(U, X+dX)-calF(U, X))/h;
@@ -250,6 +268,9 @@ class NMPC{
         Eigen::Matrix<double, x_size, 1> X=Eigen::MatrixXd::Zero(x_size, 1);
         Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Zero(u_size*N_step, 1);
         double dt;
+        std::vector<double> save_x1;
+        std::vector<double> save_x2;
+        std::vector<double> save_u;
 };
 int main(){
     constexpr double dt=0.01;
@@ -262,9 +283,12 @@ int main(){
     initX << x1,
              x2;
     NMPC nmpc(initX);
+    std::vector<double> save_time;
     for(int i=0; i<iteration_num; ++i){
         double time=i*dt;
+        save_time.push_back(time);
         Eigen::Matrix<double, u_size, 1> u=nmpc.CGMRES(time);
         nmpc.updateState(u);
+        //nmpc.figGraph(save_time);
     }
 }
