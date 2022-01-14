@@ -53,7 +53,7 @@ class NMPC{
             //状態Xを更新する
             X=;
         }
-        Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size, 1> _U, double _t){
+        Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size, 1> _U){
             Eigen::Matrix<double, x_size, 1> model_F;
             double x1=_X(0, 0);
             double x2=_X(1, 0);
@@ -67,16 +67,6 @@ class NMPC{
             Eigen::Matrix<double, 1, x_size> rphirx=_X.transpose();
             return rphirx;
         }
-        Eigen::Matrix<double, 1, x_size> rHru(Eigen::Matrix<double, x_size, 1> _x_, Eigen::Matrix<double, u_size, 1> _u_, Eigen::Matrix<double, x_size, 1> _lamda_){
-            double u=_u_(0, 0);
-            double rho=_u_(1, 0);
-            double lamda2=_lamda_(1, 0); 
-            //vはダミー変数
-            double v=std::sqrt(0.5*0.5-u*u);
-            Eigen::Matrix<double, 1, x_size> ans;
-            ans<<u+lamda2+2*rho*u, -0.01+2*rho*v;
-            return ans;
-        }
         Eigen::Matrix<double, 1, x_size> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, x_size, 1> _lamda_, double _t){
             double x1=_x_(0, 0);
             double x2=_x_(1, 0);
@@ -84,11 +74,6 @@ class NMPC{
             double lamda2=_lamda_(1, 0);
             Eigen::Matrix<double, 1, x_size> ans;
             ans<<x1-2*x1*x2*lamda2-lamda2, x2+lamda1+(-3*x2*x2-x1*x1+1)*lamda2;
-            return ans;
-        }
-        Eigen::Matrix<double, x_size, 1> Constraint(double _u_, double _x_, double _lamda_, double _rho_){
-            //制約なし
-            Eigen::Matrix<double, x_size, 1> ans=Eigen::MatrixXd::Zero(x_size, 1);
             return ans;
         }
         Eigen::Matrix<double, u_size, 1> CGMRES(double _time){
@@ -104,7 +89,7 @@ class NMPC{
             //gmres_X0を設定する
             gmres_X0=U;
             //初期残差gmres_R0を求める
-            gmres_R0=calR0(U, X, t);
+            gmres_R0=calR0();
             gmres_V[0]=gmres_R0.normalized();
             double g[m+1]{};
             g[0]=gmres_R0.norm();
@@ -164,7 +149,7 @@ class NMPC{
             U+=dU*dt;
             return U.block(0, 0, u_size, 1);
         }
-        Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, x_size, 1> _x, double _t){
+        Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x, double _t){
             Eigen::Matrix<double, x_size*N_step, 1> F;
             //制約なし
             //0~Nまでx1, x2, lamda1, lamda2
@@ -204,7 +189,7 @@ class NMPC{
             }
             return F;
         }   
-        Eigen::Matrix<double, x_size*N_step, 1> calAv(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, x_size*N_step, 1> _V, double _t){
+        Eigen::Matrix<double, x_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1>_U, Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, x_size*N_step, 1> _V, double _t){
             Eigen::Matrix<double, u_size, 1> tempU= _U.block(0, 0, u_size,1);
             Eigen::Matrix<double, x_size*N_step, 1> temp1=calF(U+h*_V, _X+h*calModel(_X, tempU, 0), t+h);
             Eigen::Matrix<double, x_size*N_step, 1> temp2=calF(U,      _X+h*calModel(_X, tempU, 0), t+h);
@@ -214,14 +199,11 @@ class NMPC{
         Eigen::Matrix<double, x_size*N_step, 1> calR0(Eigen::Matrix<double, x_size, 1> _X, double _t){
             //U'(0)=U0を使用する
             Eigen::Matrix<double, u_size*N_step, 1> dU=U;
-            Eigen::Matrix<double, u_size, 1> tempU= U.block(0, 0, u_size,1);
-            Eigen::Matrix<double, x_size*N_step, 1> temp11=calF(U, _X+h*calModel(_X, tempU, 0), t+h);
-            Eigen::Matrix<double, x_size*N_step, 1> temp12=calF(U, _X, t);
-            Eigen::Matrix<double, x_size*N_step, 1> temp1=(temp11-temp12)/h;
-            Eigen::Matrix<double, x_size*N_step, 1> temp21=calF(U+h*dU, _X+h*calModel(_X, tempU, 0), t+h);
-            Eigen::Matrix<double, x_size*N_step, 1> temp22=calF(U, _X+h*calModel(_X, tempU, 0), t+h);
-            Eigen::Matrix<double, x_size*N_step, 1> temp2=(temp21-temp22)/h;
-            Eigen::Matrix<double, x_size*N_step, 1> R0=-1*zeta*calF(U, _X, 0)-temp1-temp2;
+            Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
+            Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
+            Eigen::Matrix<double, x_size*N_step, 1> temp1=(calF(U, X+dX, 0)-calF(U, X, 0))/h;
+            Eigen::Matrix<double, x_size*N_step, 1> temp2=(calF(U+h*dU, X+dX, 0)-calF(U, X+dX, 0))/h;
+            Eigen::Matrix<double, x_size*N_step, 1> R0=-1*zeta*calF(U, X, 0)-temp1-temp2;
             return R0;
         }
     private:
