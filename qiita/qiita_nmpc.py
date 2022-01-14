@@ -325,7 +325,7 @@ class NMPCSimulatorSystem():
             means lam_2
         u : float
             means system input
-        Returns
+        Returns公式
         ---------
         y_dot : float
             means -\dot{lam_1}

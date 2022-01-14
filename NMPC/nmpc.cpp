@@ -8,7 +8,15 @@
 
 constexpr int x_size=2;
 constexpr int u_size=3;
+constexpr int f_size=3;
+constexpr int raw_size=1;
 constexpr int N_step=10;
+constexpr double zeta=100.0;
+constexpr double h=0.01;
+constexpr double tf=1.0;
+constexpr double alpha=0.5;
+constexpr double error=0.001;
+
 class SampleSystem{
     public:
         Eigen::Matrix<double, x_size, 1> x;
@@ -34,7 +42,7 @@ class NMPCSimulatorSystem{
         }
         Eigen::Matrix<double, x_size*N_step, 1> cX_;
         Eigen::Matrix<double, x_size*N_step, 1> cLamda_;
-        void calc_predict_and_adjoint_state(){
+        void calc_predict_and_adjoint_state(Eigen::Matrix<double, x_size, 1> x, Eigen::Matrix<double, u_size, 1> u, double dt){
             //制約なし
             //0~Nまでx1, x2, lamda1, lamda2
             Eigen::Matrix<double, x_size*N_step, 1> X_;
@@ -49,10 +57,6 @@ class NMPCSimulatorSystem{
                 X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*i, 0, u_size, 1), _t+i*dtau)*dtau;
                 prev_X_=X_.block(x_size*i, 0, x_size, 1);
             }
-            #if DEBUG0
-            std::cout << "X_" << std::endl;
-            std::cout << X_ << std::endl;
-            #endif
             //4
             //lamda_(lamda*)を求める
             //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
@@ -70,50 +74,60 @@ class NMPCSimulatorSystem{
             cX_=X_;
             cLamda_=Lamda_;
         }
+        Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> x, double u){
+            Eigen::Matrix<double, x_size, 1> x_dot;
+            double x1=x(0, 0);
+            double x2=x(1, 0);
+            x_dot << x2,
+                     (1-x1*x1-x2*x2)*x2-x1+u;
+            return x_dot;
+        }
 };
 class NMPCController_with_CGMRES{
     public:
         NMPCController_with_CGMRES(){
         }
-        Eigen::Matrix<double, N_step, 1> calc_input(){
-            # calculating sampling time
-            dt = self.tf * (1. - np.exp(-self.alpha * time)) / float(self.N)
+        Eigen::Matrix<double, N_step, 1> calc_input(Eigen::Matrix<double, x_size, 1> x, double time){
+            //calculating sampling time
+            double dt = tf * (1.0 - std::exp(-alpha * time)) / float(N_step);
 
-            # x_dot
-            x_1_dot = self.simulator.func_x_1(x_1, x_2, self.us[0])
-            x_2_dot = self.simulator.func_x_2(x_1, x_2, self.us[0])
+            //x_dot
+            Eigen::Matrix<double, x_size, 1> x_dot=simulator.calModel(x, us[0]);
 
-            dx_1 = x_1_dot * self.ht
-            dx_2 = x_2_dot * self.ht
+            Eigen::Matrix<double, x_size, 1> dx=x_dot*h;
 
-            x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1 + dx_1, x_2 + dx_2, self.us, self.N, dt)
+            simulator.calc_predict_and_adjoint_state(x+dx, us, dt);
+            
+            Eigen::Matrix<double, x_size*N_step, 1> X_s=simulator.cX_;
+            Eigen::Matrix<double, x_size*N_step, 1> Lamda_s=simulator.cLamda_;
+        
+            //Fxt
+            Eigen::Matrix<double, f_size*N_step, 1> Fxt=_calc_f(X_s, Lamda_s, us, dummy_us, raws, dt);
 
-            # Fxt
-            Fxt = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
-                            self.raws, self.N, dt)
+            //F
+            simulator.calc_predict_and_adjoint_state(x, us, dt);
+            X_s=simulator.cX_;
+            Lamda_s=simulator.cLamda_;
 
-            # F
-            x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1, x_2, self.us, self.N, dt)
+            Eigen::Matrix<double, f_size*N_step, 1> F=_calc_f(X_s, Lamda_s, us, dummy_us, raws, dt);
 
-            F = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
-                            self.raws, self.N, dt)
+            Eigen::Matrix<double, f_size*N_step, 1> right = -zeta * F - ((Fxt - F) / h);
 
-            right = -self.zeta * F - ((Fxt - F) / self.ht)
+            Eigen::Matrix<double, N_step, 1> du = us*h;
+            Eigen::Matrix<double, N_step, 1> ddummy_u=dummy_us*h;
+            Eigen::Matrix<double, N_step, 1> draw=raws*h;
 
-            du = self.us * self.ht
-            ddummy_u = self.dummy_us * self.ht
-            draw = self.raws * self.ht
+            simulator.calc_predict_and_adjoint_state(x+dx, us + du, dt);
+            X_s=simulator.cX_;
+            Lamda_s=simulator.cLamda_;
 
-            x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1 + dx_1, x_2 + dx_2, self.us + du, self.N, dt)
+            Eigen::Matrix<double, f_size*N_step, 1> Fuxt=_calc_f(X_s, Lamda_s, us + du, self.dummy_us + ddummy_u,self.raws + draw, self.N, dt);
 
-            Fuxt = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us + du, self.dummy_us + ddummy_u,
-                           self.raws + draw, self.N, dt)
+            Eigen::Matrix<double, f_size*N_step, 1> left=((Fuxt - Fxt) / self.ht);
 
-            left = ((Fuxt - Fxt) / self.ht)
-
-            # calculationg cgmres
-            r0 = right - left
-            r0_norm = np.linalg.norm(r0)
+            //calculationg cgmres
+            Eigen::Matrix<double, f_size*N_step, 1> r0 = right - left;
+            double r0_norm = r0.norm();
         
             vs = np.zeros((self.max_iteration, self.max_iteration + 1)) # 数×iterarion回数
         
@@ -162,7 +176,7 @@ class NMPCController_with_CGMRES{
 
             ys_pre = ys
         
-            # update
+            //update
             self.us += du_new * self.ht
             self.dummy_us += ddummy_u_new * self.ht
             self.raws += draw_new * self.ht
@@ -172,36 +186,21 @@ class NMPCController_with_CGMRES{
             F = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
                             self.raws, self.N, dt)
 
-            print("check F = {0}".format(np.linalg.norm(F)))
-
-            # for save
-            self.history_f.append(np.linalg.norm(F))
-            self.history_u.append(self.us[0])
-            self.history_dummy_u.append(self.dummy_us[0])
-            self.history_raw.append(self.raws[0])
-
-            return self.us
-
+            return us;
         }
-        void _calc_f(self, x_1s, x_2s, lam_1s, lam_2s, us, dummy_us, raws, N, dt){
-            F = []
-
-            for i in range(N):
-                F.append(us[i] + lam_2s[i] + 2. * raws[i] * us[i])
-                F.append(-0.01 + 2. * raws[i] * dummy_us[i])
-                F.append(us[i]**2 + dummy_us[i]**2 - 0.5**2)
-        
-            return np.array(F)
+        Eigen::Matrix<double, f_size*N_step, 1> _calc_f(Eigen::Matrix<double, x_size*N_step, 1> x, Eigen::Matrix<double, x_size*N_step, 1>lam, Eigen::Matrix<double, N_step, 1>us,  Eigen::Matrix<double, N_step, 1>dummy_us, Eigen::Matrix<double, raw_size*N_step, 1>raws, dt){
+            Eigen::Matrix<double, f_size*N_step, 1> F;
+            for(int i=0; i<N_step; i++){
+                double lam_1=lam(i, 0);
+                double lam_2=lam(i+1, 0);
+                F((i*f_size),   0)=us(i, 0)+lam_2+2.0*raws(i, 0)*us(i, 0);
+                F((i*f_size)+1, 0)=-0.01+2.0*raws(i, 0)*dummy_us(i, 0);
+                F((i*f_size)+2, 0)=us(i, 0)*us(i, 0)+dummy_us(i, 0)*dummy_us(i, 0)-0.5*0.5;
+            }
+            return F;
         }
     private:
-        double zeta=100.0;
-        double h=0.01;
-        double tf=1.0;
-        double alpha=0.5;
-        double error=0.001;
-        double u_size=3;
-        
-        NMPCSimulatorSystem simulator();
+        NMPCSimulatorSystem simulator;
 
         Eigen::Matrix<double, N_step, 1> us;
         Eigen::Matrix<double, N_step, 1> dummy_us;
@@ -220,13 +219,12 @@ int main(){
     SampleSystem plant_system(init_x_1, init_x_2);
 
     //controller
-    NMPCController_with_CGMRES controller();
+    NMPCController_with_CGMRES controller;
 
     for(int i=0; i<iteration_num; ++i){
         double time = float(i) * dt;
-        double x_1 = plant_system.x_1;
-        double x_2 = plant_system.x_2;
-        Eigen::Matrix<double, N_step, 1>us=controller.calc_input(x_1, x_2, time);
+        Eigen::Matrix<double, x_size, 1> x=plant_system.x;
+        Eigen::Matrix<double, N_step, 1>us=controller.calc_input(x, time);
         plant_system.update_state(us(0, 0));
     }
 }
