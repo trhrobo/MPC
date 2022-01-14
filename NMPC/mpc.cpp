@@ -159,6 +159,7 @@ class NMPC{
                 g[i+1]=-1*s[i]*g[i];
                 g[i]=c[i]*g[i];
                 r[i][i]=c[i]*r[i][i]+s[i]*h[i+1][i];
+                if(i==0)std::cout<<c[0]<<" "<<s[0]<<" "<<g[1]<<" "<<g[0]<<" "<<r[0]<<std::endl;
             }
             Eigen::Matrix<double, m, 1> Gm;
             for(int i=0; i<m; ++i){
