@@ -49,9 +49,47 @@ class NMPC{
             }
         }
         void updateState(Eigen::Matrix<double, u_size, 1> _u){
-            //FIXME:ルンゲクッタを解く
             //状態Xを更新する
-            X=;
+            double k0[2]{};
+            double k1[2]{};
+            double k2[2]{};
+            double k3[2]{};
+
+            double x1=X(0, 0);
+            double x2=X(1, 0);
+            double u=U(0, 0);
+            for(int i=0; i<2; ++i){
+                k0[i]=dt*Func(x1, x2, u, i);
+            }
+            for(int i=0; i<2; ++i){
+                k1[i]=dt*Func(x1+k0[0]/2, x2+k0[1]/2, u, i);
+            }
+            for(int i=0; i<2; ++i){
+                k2[i]=dt*Func(x1+k1[0]/2, x2+k1[1]/2, u, i);
+            }
+            for(int i=0; i<2; ++i){
+                k3[i]=dt*Func(x1+k2[0]/2, x2+k2[1]/2, u, i);
+            }
+            x1+=(k0[0]+2*k1[0]+2*k2[0]+k3[0])/6;
+            x2+=(k0[1]+2*k1[0]+2*k2[0]+k3[0])/6;
+            X(0, 0)=x1;
+            X(1, 0)=x2;
+        }
+        double Func(double _x1, double _x2, double _u, double i){
+            double ans{};
+            if(i==0){
+                ans=Func1(_x1, _x2, _u);
+            }else{
+                ans=Func2(_x1, _x2, _u);
+            }
+        }
+        double Func1(double _x1, double _x2, double _u){
+            double x1_dot=_x2;
+            return x1_dot;
+        }
+        double Func2(double _x1, double _x2, double _u){
+            double x2_dot=(1-_x1*_x1-_x2*_x2)*_x2-_x1+_u;
+            return x2_dot;
         }
         Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size, 1> _U){
             Eigen::Matrix<double, x_size, 1> model_F;
