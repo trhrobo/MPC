@@ -255,8 +255,6 @@ class NMPCController_with_CGMRES():
         F = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
                             self.raws, self.N, dt)
 
-        print("check F = {0}".format(np.linalg.norm(F)))
-
         # for save
         self.history_f.append(np.linalg.norm(F))
         self.history_u.append(self.us[0])
@@ -292,6 +290,7 @@ def main():
         time = float(i) * dt
         x_1 = plant_system.x_1
         x_2 = plant_system.x_2
+        print(i, iteration_num, x_1, x_2)
         # make inputコロナ
         us = controller.calc_input(x_1, x_2, time)
         # update state

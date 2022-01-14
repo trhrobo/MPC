@@ -20,12 +20,10 @@ constexpr int N_step=10;
 constexpr double alpha=0.5;
 constexpr double tf=1.0;
 constexpr double zeta=100.0;
-constexpr double h=0.01;
+constexpr double ht=0.01;
 //初期値設定
 constexpr double x1=2;
 constexpr double x2=0;
-//mはリスタートパラメータ
-constexpr int m=30;
 
 //x={x1, x2}    
 constexpr int x_size=2;
@@ -37,7 +35,7 @@ constexpr int x_size=2;
 constexpr int u_size=3;
 //f={rHru(x_size), c}
 constexpr int f_size=3;
-
+constexpr int max_iteration=u_size*N_step;
 class NMPC{
     public:
         NMPC(Eigen::Matrix<double, x_size, 1> _X){
@@ -103,7 +101,7 @@ class NMPC{
             return x1_dot;
         }
         double Func2(double _x1, double _x2, double _u){
-            double x2_dot=(1-_x1*_x1-_x2*_x2)*_x2-_x1+_u;
+            double x2_dot=((1-_x1*_x1-_x2*_x2)*_x2-_x1+_u);
             return x2_dot;
         }
         Eigen::Matrix<double, x_size, 1> calModel(Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, u_size, 1> _U){
@@ -131,27 +129,48 @@ class NMPC{
         }
         Eigen::Matrix<double, u_size, 1> CGMRES(double _time){
             dt=tf*(1-std::exp(-alpha*_time))/N_step;
+            Eigen::Matrix<double, max_iteration, 1> gmres_R0=calR0();
+            Eigen::Matrix<double, max_iteration, max_iteration+1> Vs=Eigen::MatrixXd::Zero(max_iteration, max_iteration+1);
+            Vs.col(0)=gmres_R0.normalized();
+            Eigen::Matrix<double, max_iteration+1, max_iteration+1> Hs=Eigen::MatrixXd::Zero(max_iteration+1, max_iteration+1);
+            Eigen::Matrix<double, max_iteration+1, 1> E;
+            E(0, 0)=1;
+            for(int i=0; i<max_iteration; ++i>){
+                Eigen::Matrix<double, max_iteration, 1> dU=Vs.col(i)*ht;
+                  Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
+                Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*ht;
+                Eigen::Matrix<double, max_iteration, 1> Av=((calF(X+dX, U+dU)-calF(X+dX, U))/ht);
+                Eigen::Matrix<double, max_iteration, 1> sum_Av=Eigen::MatrixXd::Zero(max_iteration, 1);
+                for(int j=0; j<(i+1) ++j){
+                    Hs(j, i)=Av.dot(Vs.col(j));
+                    sum_Av=sum_Av+Hs(j, i)*Vs.col(j);
+                }
+                Eigen::Matrix<double, max_iteration, 1> V_est=Av-sum_Av;
+                Hs(i+1, i)=V_est.norm();
+                Vs.col(i+1)=V_est/Hs(i+1, i);
+
+            }
             //gmres法を用いてdUを求める
-            Eigen::Matrix<double, u_size*N_step, 1> dU=Eigen::MatrixXd::Zero(u_size*N_step, 1);
-            Eigen::Matrix<double, u_size*N_step, 1> gmres_Xm=Eigen::MatrixXd::Zero(u_size*N_step, 1);
-            Eigen::Matrix<double, u_size*N_step, 1> gmres_X0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
-            Eigen::Matrix<double, m, 1> gmres_Ym=Eigen::MatrixXd::Zero(m, 1);
-            Eigen::Matrix<double, u_size*N_step, 1> gmres_V[m];
-            Eigen::Matrix<double, u_size*N_step, m> gmres_Vm=Eigen::MatrixXd::Zero(u_size*N_step, m);
-            Eigen::Matrix<double, u_size*N_step, 1> gmres_R0=Eigen::MatrixXd::Zero(u_size*N_step, 1);
+            /*Eigen::Matrix<double, max_iteration, 1> dU=Eigen::MatrixXd::Zero(max_iteration, 1);
+            Eigen::Matrix<double, max_iteration, 1> gmres_Xm=Eigen::MatrixXd::Zero(max_iteration, 1);
+            Eigen::Matrix<double, max_iteration, 1> gmres_X0=Eigen::MatrixXd::Zero(max_iteration, 1);
+            Eigen::Matrix<double, max_iteration, 1> gmres_Ym=Eigen::MatrixXd::Zero(max_iteration, 1);
+            Eigen::Matrix<double, max_iteration, 1> gmres_V[max_iteration];
+            Eigen::Matrix<double, max_iteration, max_iteration> gmres_Vm=Eigen::MatrixXd::Zero(max_iteration, max_iteration);
+            Eigen::Matrix<double, max_iteration, 1> gmres_R0=Eigen::MatrixXd::Zero(max_iteration, 1);
             //gmres_X0を設定する
             gmres_X0=U;
             //初期残差gmres_R0を求める
             gmres_R0=calR0();
             //std::cout<<gmres_R0<<std::endl;
             gmres_V[0]=gmres_R0.normalized();
-            double g[m+1]{};
+            double g[max_iteration+1]{};
             g[0]=gmres_R0.norm();
-            double h[m+1][m]{};
-            double r[m][m]{};
-            double c[m]{};
-            double s[m]{}; 
-            for(int i=0; i<m; ++i){
+            double h[max_iteration+1][max_iteration]{};
+            double r[max_iteration][max_iteration]{};
+            double c[max_iteration]{};
+            double s[max_iteration]{}; 
+            for(int i=0; i<max_iteration; ++i){
                 for(int k=0; k<(i+1); ++k){
                     Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(gmres_V[i]);
                     //if(i==0)std::cout<<tempAv<<std::endl;
@@ -168,7 +187,7 @@ class NMPC{
                 //if(i==0)std::cout<<h[1][0]<<std::endl;
                 gmres_V[i+1]=temp_V/h[i+1][i];
                 //if(i==0)std::cout<<gmres_V[1]<<std::endl;
-                r[0][i]=h[0][i];
+                /*r[0][i]=h[0][i];
                 for(int k=0; k<((i+1)-1); ++k){
                     double temp1=c[k]*r[k][i]+s[k]*h[k+1][i];
                     double temp2=-1*s[k]*r[k][i]+c[k]*h[k+1][i];
@@ -181,32 +200,33 @@ class NMPC{
                 g[i]=c[i]*g[i];
                 r[i][i]=c[i]*r[i][i]+s[i]*h[i+1][i];
                 //if(i==0)std::cout<<c[0]<<" "<<s[0]<<" "<<g[1]<<" "<<g[0]<<" "<<r[0]<<std::endl;
-            }
-            Eigen::Matrix<double, m, 1> Gm;
-            for(int i=0; i<m; ++i){
+            }*/
+            /*Eigen::Matrix<double, max_iteration, 1> Gm;
+            for(int i=0; i<max_iteration; ++i){
                 Gm(i, 0)=g[i];
             }
-            Eigen::Matrix<double, m, m> Rm;
-            for(int i=0; i<m; ++i){
-                for(int k=0; k<m; ++k){
+            Eigen::Matrix<double, max_iteration, max_iteration> Rm;
+            for(int i=0; i<max_iteration; ++i){
+                for(int k=0; k<max_iteration; ++k){
                     Rm(i, k)=r[i][k];
                 }
             }
             //上で作ったgmres_V[i]をgmres_Vmに代入する
-            for(int i=0; i<m; ++i){
+            for(int i=0; i<max_iteration; ++i){
                 gmres_Vm.col(i)=gmres_V[i];
-            }
+            }*/
+            
             //後退代入によってRm*Ym=Gmを解く
-            for(int i=(m-1); i>=0; --i){
+            /*for(int i=(max_iteration-1); i>=0; --i){
                 double temp_sigma_back=0;
-                for(int k=(i+1); k<m; ++k){
+                for(int k=(i+1); k<max_iteration; ++k){
                     temp_sigma_back+=Rm(i, k)*gmres_Ym[k];
                 }
                 gmres_Ym[i]=(Gm[i]-temp_sigma_back)/Rm(i, i);
             }
             gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
             dU=gmres_Xm;
-            U+=dU*dt;
+            U+=dU*dt;*/
             return U.block(0, 0, u_size, 1);
         }
         Eigen::Matrix<double, f_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x){
@@ -251,19 +271,19 @@ class NMPC{
         }   
         Eigen::Matrix<double, u_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1> _V){
             Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
-            Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
-            Eigen::Matrix<double, u_size*N_step, 1> temp1=calF(U+(_V*h), X+dX);
+            Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*ht;
+            Eigen::Matrix<double, u_size*N_step, 1> temp1=calF(U+(_V*ht), X+dX);
             Eigen::Matrix<double, u_size*N_step, 1> temp2=calF(U, X+dX);
-            Eigen::Matrix<double, u_size*N_step, 1> Av=(temp1-temp2)/h;
+            Eigen::Matrix<double, u_size*N_step, 1> Av=(temp1-temp2)/ht;
             return Av;
         }
         Eigen::Matrix<double, u_size*N_step, 1> calR0(){
             //U'(0)=U0を使用する
-            Eigen::Matrix<double, u_size*N_step, 1> dU=U*h;
+            Eigen::Matrix<double, u_size*N_step, 1> dU=U*ht;
             Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
-            Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
-            Eigen::Matrix<double, u_size*N_step, 1> temp1=(calF(U, X+dX)-calF(U, X))/h;
-            Eigen::Matrix<double, u_size*N_step, 1> temp2=(calF(U+dU, X+dX)-calF(U, X+dX))/h;
+            Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*ht;
+            Eigen::Matrix<double, u_size*N_step, 1> temp1=(calF(U, X+dX)-calF(U, X))/ht;
+            Eigen::Matrix<double, u_size*N_step, 1> temp2=(calF(U+dU, X+dX)-calF(U, X+dX))/ht;
             Eigen::Matrix<double, u_size*N_step, 1> R0=-1*zeta*calF(U, X)-temp1-temp2;
             return R0;
         }
@@ -288,6 +308,7 @@ int main(){
     NMPC nmpc(initX);
     std::vector<double> save_time;
     for(int i=0; i<iteration_num; ++i){
+        std::cout<<i<<std::endl;
         double time=i*dt;
         save_time.push_back(time);
         Eigen::Matrix<double, u_size, 1> u=nmpc.CGMRES(time);
