@@ -217,7 +217,7 @@ class NMPC{
                 prev_Lamda_=Lamda_.block(x_size*i, 0, x_size, 1);
             }
             for(int i=0; i<N_step; i++){
-                double lam_2=Lamda_((i*x_size)+1, 1);
+                double lam_2=Lamda_((i*x_size)+1, 0);
                 double u=U(i*u_size, 0);
                 double v=U((i*u_size+1), 0);
                 double rho=U((i*u_size+2), 0);
