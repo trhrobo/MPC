@@ -63,11 +63,11 @@ class NMPC{
                        ((1-x1*x1-x2*x2)*x2-x1+u);
             return model_F;
         }
-        Eigen::Matrix<double, 1, x_size> rphirx(Eigen::Matrix<double, x_size, 1> _X, double _t){
+        Eigen::Matrix<double, 1, x_size> rphirx(Eigen::Matrix<double, x_size, 1> _X){
             Eigen::Matrix<double, 1, x_size> rphirx=_X.transpose();
             return rphirx;
         }
-        Eigen::Matrix<double, 1, x_size> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, x_size, 1> _lamda_, double _t){
+        Eigen::Matrix<double, 1, x_size> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, x_size, 1> _lamda_){
             double x1=_x_(0, 0);
             double x2=_x_(1, 0);
             double lamda1=_lamda_(0, 0);
@@ -99,14 +99,14 @@ class NMPC{
             double s[m]{}; 
             for(int i=0; i<m; ++i){
                 for(int k=0; k<(i+1); ++k){
-                    Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i], t);
+                    Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(U, X, gmres_V[i]);
                     h[k][i]=tempAv.dot(gmres_V[k]);
                 }
                 Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
                 for(int k=0; k<(i+1); k++){
                     temp_sigma+=h[k][i]*gmres_V[k];
                 }
-                Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i], t)-temp_sigma;
+                Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(U, X, gmres_V[i])-temp_sigma;
                 h[i+1][i]=temp_V.norm();
                 gmres_V[i+1]=temp_V/h[i+1][i];
                 r[0][i]=h[0][i];
@@ -149,7 +149,7 @@ class NMPC{
             U+=dU*dt;
             return U.block(0, 0, u_size, 1);
         }
-        Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x, double _t){
+        Eigen::Matrix<double, x_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x){
             Eigen::Matrix<double, x_size*N_step, 1> F;
             //制約なし
             //0~Nまでx1, x2, lamda1, lamda2
@@ -161,21 +161,21 @@ class NMPC{
             //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
             Eigen::Matrix<double, x_size, 1> prev_X_=_x;
             for(int i=1; i < N_step; i++){
-                X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, U.block(u_size*i, 0, u_size, 1), _t+i*dt)*dt;
+                X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, U.block(u_size*i, 0, u_size, 1))*dt;
                 prev_X_=X_.block(x_size*i, 0, x_size, 1);
             }
             //4
             //lamda_(lamda*)を求める
             //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
-            Eigen::Matrix<double, 1, x_size> temp_rphirx=rphirx(X_.block(x_size*(N_step-1), 0, x_size, 1), _t+T_predict);
+            Eigen::Matrix<double, 1, x_size> temp_rphirx=rphirx(X_.block(x_size*(N_step-1), 0, x_size, 1));
             Lamda_.block(x_size*(N_step-1), 0, x_size, 1)=temp_rphirx.transpose();
             //lamdai*=lamdai+1*+(rH/ru)^T*dtau
             Eigen::Matrix<double, x_size, 1> prev_Lamda_=Lamda_.block(x_size*(N_step-1), 0, x_size, 1);
             //逆順で解く
             //N_step-2の理由(N_step-1で最後のLamdaのグループなので(上でそこは計算してる),それの前だからN-2)
             for(int i=(N_step-2); i >= 0; --i){
-                Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), U.block(u_size*i, 0, u_size, 1), prev_Lamda_, _t+i*dt);
-                Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+temp_rHrx.transpose()*dtau;
+                Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), U.block(u_size*i, 0, u_size, 1), prev_Lamda_);
+                Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+temp_rHrx.transpose()*dt;
                 prev_Lamda_=Lamda_.block(x_size*i, 0, x_size, 1);
             }
             for(int i=0; i<N_step; i++){
@@ -189,21 +189,22 @@ class NMPC{
             }
             return F;
         }   
-        Eigen::Matrix<double, x_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1>_U, Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, x_size*N_step, 1> _V, double _t){
-            Eigen::Matrix<double, u_size, 1> tempU= _U.block(0, 0, u_size,1);
-            Eigen::Matrix<double, x_size*N_step, 1> temp1=calF(U+h*_V, _X+h*calModel(_X, tempU, 0), t+h);
-            Eigen::Matrix<double, x_size*N_step, 1> temp2=calF(U,      _X+h*calModel(_X, tempU, 0), t+h);
+        Eigen::Matrix<double, x_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1>_U, Eigen::Matrix<double, x_size, 1> _X, Eigen::Matrix<double, x_size*N_step, 1> _V){
+            Eigen::Matrix<double, u_size, 1> U0= _U.block(0, 0, u_size,1);
+            Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
+            Eigen::Matrix<double, x_size*N_step, 1> temp1=calF(_U+h*_V, _X+dX);
+            Eigen::Matrix<double, x_size*N_step, 1> temp2=calF(_U,      _X+dX);
             Eigen::Matrix<double, x_size*N_step, 1> Av=(temp1-temp2)/h;
             return Av;
         }
-        Eigen::Matrix<double, x_size*N_step, 1> calR0(Eigen::Matrix<double, x_size, 1> _X, double _t){
+        Eigen::Matrix<double, x_size*N_step, 1> calR0(){
             //U'(0)=U0を使用する
             Eigen::Matrix<double, u_size*N_step, 1> dU=U;
             Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
             Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
-            Eigen::Matrix<double, x_size*N_step, 1> temp1=(calF(U, X+dX, 0)-calF(U, X, 0))/h;
-            Eigen::Matrix<double, x_size*N_step, 1> temp2=(calF(U+h*dU, X+dX, 0)-calF(U, X+dX, 0))/h;
-            Eigen::Matrix<double, x_size*N_step, 1> R0=-1*zeta*calF(U, X, 0)-temp1-temp2;
+            Eigen::Matrix<double, x_size*N_step, 1> temp1=(calF(U, X+dX)-calF(U, X))/h;
+            Eigen::Matrix<double, x_size*N_step, 1> temp2=(calF(U+h*dU, X+dX)-calF(U, X+dX))/h;
+            Eigen::Matrix<double, x_size*N_step, 1> R0=-1*zeta*calF(U, X)-temp1-temp2;
             return R0;
         }
     private:
