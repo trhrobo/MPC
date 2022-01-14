@@ -85,6 +85,9 @@ class NMPC{
             x2+=(k0[1]+2*k1[0]+2*k2[0]+k3[0])/6;
             X(0, 0)=x1;
             X(1, 0)=x2;
+            /*X+=calModel(X, U.block(0, 0, u_size, 1))*dt;
+            double x1=X(0, 0);
+            double x2=X(1, 0);*/
             std::cout<<x1<<" "<<x2<<std::endl;
         }
         double Func(double _x1, double _x2, double _u, double i){
@@ -260,7 +263,7 @@ class NMPC{
             Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
             Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*h;
             Eigen::Matrix<double, u_size*N_step, 1> temp1=(calF(U, X+dX)-calF(U, X))/h;
-            Eigen::Matrix<double, u_size*N_step, 1> temp2=(calF(U+h*dU, X+dX)-calF(U, X+dX))/h;
+            Eigen::Matrix<double, u_size*N_step, 1> temp2=(calF(U+dU, X+dX)-calF(U, X+dX))/h;
             Eigen::Matrix<double, u_size*N_step, 1> R0=-1*zeta*calF(U, X)-temp1-temp2;
             return R0;
         }
