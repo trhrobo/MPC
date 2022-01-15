@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import time
 
 class SampleSystem():
     def __init__(self, init_x_1=0., init_x_2=0.):
@@ -47,6 +48,7 @@ class SampleSystem():
 
 
 class NMPCSimulatorSystem():
+    flag_check = False
     def __init__(self):
         pass
 
@@ -60,7 +62,8 @@ class NMPCSimulatorSystem():
         # initial state
         x_1s = [x_1]
         x_2s = [x_2]
-
+        #print("_x_1, _x_2")
+        #print(x_1, x_2)
         for i in range(N):
             temp_x_1, temp_x_2 = self._predict_state_with_oylar(x_1s[i], x_2s[i], us[i], dt)
             x_1s.append(temp_x_1)
@@ -89,12 +92,16 @@ class NMPCSimulatorSystem():
 
         functions = [self.func_x_1, self.func_x_2]
 
+        print("----")
         for i, func in enumerate(functions):
             k0[i] = dt * func(x_1, x_2, u)
                 
+        #print("x_1", x_1, k0[0], self.func_x_1(x_1, x_2, u))
+        #print("x_2", x_2, k0[1], self.func_x_2(x_2, x_1, u))
         next_x_1 = x_1 + k0[0]
         next_x_2 = x_2 + k0[1]
-
+        time.sleep(0.1)
+            
         return next_x_1, next_x_2
 
     def func_x_1(self, y_1, y_2, u):
@@ -174,11 +181,23 @@ class NMPCController_with_CGMRES():
                             self.raws, self.N, dt)
 
         # F
+        print("*x_1, *x_2")
+        print(x_1, x_2)
+        self.simulator.flag_check=True
         x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1, x_2, self.us, self.N, dt)
+        self.simulator.flag_check=False
         print("x_1s")
         print(x_1s)
+        print("x_1s_size")
+        print(len(x_1s))
         print("x_2s")
         print(x_2s)
+        print("x_2s_size")
+        print(len(x_2s))
+        print("lam_1s_size")
+        print(len(lam_1s))
+        print("lam_2s_size")
+        print(len(lam_2s))
         print("lam_1s")
         print(lam_1s)
         print("lam_2s")
@@ -186,7 +205,6 @@ class NMPCController_with_CGMRES():
         F = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
                             self.raws, self.N, dt)
         right = -self.zeta * F - ((Fxt - F) / self.ht)
-
         du = self.us * self.ht
         ddummy_u = self.dummy_us * self.ht
         draw = self.raws * self.ht

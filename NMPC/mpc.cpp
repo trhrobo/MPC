@@ -250,28 +250,29 @@ class NMPC{
         Eigen::Matrix<double, f_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x){
             Eigen::Matrix<double, f_size*N_step, 1> F;
             //制約なし
-            //0~Nまでx1, x2, lamda1, lamda2
-            Eigen::Matrix<double, x_size*N_step, 1> X_;
+            //0~Nまでx1, x2
+            Eigen::Matrix<double, x_size*(N_step+1), 1> X_;
+            //1~Nまでlamda1, lamda2
             Eigen::Matrix<double, x_size*N_step, 1> Lamda_;
             //x_(x*)を求める
             //x0*(t)=x(t)を計算する
             X_.block(0, 0, x_size, 1)=_x;
             //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
             Eigen::Matrix<double, x_size, 1> prev_X_=_x;
-            for(int i=1; i < N_step; i++){
-                X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*i, 0, u_size, 1))*dt;
+            for(int i=1; i < (N_step+1); i++){
+                X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*(i-1), 0, u_size, 1))*dt;
                 prev_X_=X_.block(x_size*i, 0, x_size, 1);
             }
             //4
             //lamda_(lamda*)を求める
             //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
-            Eigen::Matrix<double, 1, x_size> temp_rphirx=rphirx(X_.block(x_size*(N_step-1), 0, x_size, 1));
+            Eigen::Matrix<double, 1, x_size> temp_rphirx=rphirx(X_.block(x_size*((N_step+1)-1), 0, x_size, 1));
             Lamda_.block(x_size*(N_step-1), 0, x_size, 1)=temp_rphirx.transpose();
             //lamdai*=lamdai+1*+(rH/ru)^T*dtau
             Eigen::Matrix<double, x_size, 1> prev_Lamda_=Lamda_.block(x_size*(N_step-1), 0, x_size, 1);
             if(count==0){
-                std::cout<<"prev_Lamda_"<<std::endl;
-                std::cout<<prev_Lamda_<<std::endl;
+                //std::cout<<"prev_Lamda_"<<std::endl;
+                //std::cout<<prev_Lamda_<<std::endl;
             }
             //逆順で解く
             //N_step-2の理由(N_step-1で最後のLamdaのグループなので(上でそこは計算してる),それの前だからN-2)
@@ -289,12 +290,25 @@ class NMPC{
                 F((i*f_size)+1, 0)=-0.01+2.0*rho*v;
                 F((i*f_size)+2, 0)=u*u+v*v-0.5*0.5;
             }
-            if(count==0){
-                std::cout<<"X_"<<std::endl;
-                std::cout<<X_<<std::endl;
-                std::cout<<"Lamda_"<<std::endl;
-                std::cout<<Lamda_<<std::endl;
-            }
+            /*if(count==0){
+                for(int i=0; i<N_step+1; ++i){
+                    std::cout<<i<<std::endl;
+                    double temp_x_1=X_(i*x_size, 0);
+                    double temp_x_2=X_((i*x_size)+1, 0);
+                    //double temp_lamda_1=Lamda_(i*x_size, 0);
+                    //double temp_lamda_2=Lamda_((i*x_size)+1, 0);
+                    //printf("%.16lf %.16lf %.16lf %.16lf", temp_x_1, temp_x_2, temp_lamda_1, temp_lamda_2);
+                    printf("%.16lf %.16lf", temp_x_1, temp_x_2);
+                    if(i<N_step){
+                        double temp_lamda_1=Lamda_(i*x_size, 0);
+                        double temp_lamda_2=Lamda_((i*x_size)+1, 0);
+                        printf(" %.16lf %.16lf", temp_lamda_1, temp_lamda_2);
+                    }
+                    printf("\n");
+                }
+                //std::cout<<"Lamda_"<<std::endl;
+                //std::cout<<Lamda_<<std::endl;
+            }*/
             ++count;
             return F;
         }   
