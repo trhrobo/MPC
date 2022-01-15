@@ -233,7 +233,8 @@ class NMPCController_with_CGMRES():
 
             inv_hs = np.linalg.pinv(hs[:i+1, :i]) # この辺は教科書（実時間の方）にのっています
             ys = np.dot(inv_hs, r0_norm * e[:i+1])
-
+            print("----")
+            print(ys)
             judge_value = r0_norm * e[:i+1] - np.dot(hs[:i+1, :i], ys[:i])
 
             if np.linalg.norm(judge_value) < self.threshold or i == self.max_iteration-1:
@@ -290,7 +291,7 @@ def main():
         time = float(i) * dt
         x_1 = plant_system.x_1
         x_2 = plant_system.x_2
-        print(i, iteration_num, x_1, x_2)
+        #print(i, iteration_num, x_1, x_2)
         # make inputコロナ
         us = controller.calc_input(x_1, x_2, time)
         # update state

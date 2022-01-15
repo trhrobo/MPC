@@ -14,7 +14,7 @@ namespace plt = matplotlibcpp;
 
 /*各種定数設定*/
 //目標値に対する誤差
-constexpr double error=0.001;
+constexpr double threshold=0.001;
 //予測ステップ
 constexpr int N_step=10;
 constexpr double alpha=0.5;
@@ -130,14 +130,16 @@ class NMPC{
         Eigen::Matrix<double, u_size, 1> CGMRES(double _time){
             dt=tf*(1-std::exp(-alpha*_time))/N_step;
             Eigen::Matrix<double, max_iteration, 1> gmres_R0=calR0();
+            double r0_norm=gmres_R0.norm();
             Eigen::Matrix<double, max_iteration, max_iteration+1> Vs=Eigen::MatrixXd::Zero(max_iteration, max_iteration+1);
             Vs.col(0)=gmres_R0.normalized();
             Eigen::Matrix<double, max_iteration+1, max_iteration+1> Hs=Eigen::MatrixXd::Zero(max_iteration+1, max_iteration+1);
             Eigen::Matrix<double, max_iteration+1, 1> E;
             E(0, 0)=1;
+            Eigen::Matrix<double, max_iteration, 1> dU_new;
             for(int i=0; i<max_iteration; ++i>){
                 Eigen::Matrix<double, max_iteration, 1> dU=Vs.col(i)*ht;
-                  Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
+                Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
                 Eigen::Matrix<double, x_size, 1> dX=calModel(X, U0)*ht;
                 Eigen::Matrix<double, max_iteration, 1> Av=((calF(X+dX, U+dU)-calF(X+dX, U))/ht);
                 Eigen::Matrix<double, max_iteration, 1> sum_Av=Eigen::MatrixXd::Zero(max_iteration, 1);
@@ -148,8 +150,21 @@ class NMPC{
                 Eigen::Matrix<double, max_iteration, 1> V_est=Av-sum_Av;
                 Hs(i+1, i)=V_est.norm();
                 Vs.col(i+1)=V_est/Hs(i+1, i);
-
+                Eigen::Matrix<double, i+1, i> temp_Hs=Hs.block(0, 0, i+1, i);
+                inv_hs=temp_Hs.completeOrthogonalDecomposition().pseudoInverse();
+                Eigen::Matrix<double, i+1, 1> temp_E=E.block(i+1, 0);
+                Eigen::Matrix<double, max_iteration, 1> ys=inv_hs.dot(r0_norm*temp_E);
+                judge_value=r0_norm*temp_E-hs[].dot(ys.block(i, 0));
+                if(judge_value.norm()<threshold or i==(max_iteration-1)){
+                    Eigen::Matrix<double, max_iteration, i-1> tempVs=Vs.dot(0, 0, max_iteration, i-1);
+                    Eigen::Matrix<double, i-1, 1> temp_ys_pre=ys_pre.block(0, 0, i-1, 1);
+                    Eigen::Matrix<double, max_iteration, 1> update_value=tempVs*temp_ys_pre;
+                    dU_new+=update_value;
+                    break;
+                }
+                Eigen::Matrix<double, max_iteration, 1> ys_pre=ys;
             }
+            U+=dU_new*ht;
             //gmres法を用いてdUを求める
             /*Eigen::Matrix<double, max_iteration, 1> dU=Eigen::MatrixXd::Zero(max_iteration, 1);
             Eigen::Matrix<double, max_iteration, 1> gmres_Xm=Eigen::MatrixXd::Zero(max_iteration, 1);
