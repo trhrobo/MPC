@@ -157,11 +157,9 @@ class NMPCController_with_CGMRES():
         self.history_dummy_u = []
         self.history_raw = []
         self.history_f = []
-
     def calc_input(self, x_1, x_2, time):
         # calculating sampling time
         dt = self.tf * (1. - np.exp(-self.alpha * time)) / float(self.N)
-
         # x_dot
         x_1_dot = self.simulator.func_x_1(x_1, x_2, self.us[0])
         x_2_dot = self.simulator.func_x_2(x_1, x_2, self.us[0])
@@ -177,10 +175,16 @@ class NMPCController_with_CGMRES():
 
         # F
         x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1, x_2, self.us, self.N, dt)
-
+        print("x_1s")
+        print(x_1s)
+        print("x_2s")
+        print(x_2s)
+        print("lam_1s")
+        print(lam_1s)
+        print("lam_2s")
+        print(lam_2s)
         F = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
                             self.raws, self.N, dt)
-
         right = -self.zeta * F - ((Fxt - F) / self.ht)
 
         du = self.us * self.ht
@@ -233,8 +237,6 @@ class NMPCController_with_CGMRES():
 
             inv_hs = np.linalg.pinv(hs[:i+1, :i]) # この辺は教科書（実時間の方）にのっています
             ys = np.dot(inv_hs, r0_norm * e[:i+1])
-            print("----")
-            print(ys)
             judge_value = r0_norm * e[:i+1] - np.dot(hs[:i+1, :i], ys[:i])
 
             if np.linalg.norm(judge_value) < self.threshold or i == self.max_iteration-1:
