@@ -22,10 +22,14 @@ int main(){
     std::cout<<a<<std::endl;
     std::cout<<ans<<std::endl;
     */
-    Eigen::Matrix<double, 3, 4> A;
-    A(0,0)=1; A(0,1)=2;  A(0,2)=3; A(0,3)=4;
-    A(1,0)=5; A(1,1)=6;  A(1,2)=7; A(1,3)=8;
-    A(2,0)=9; A(2,1)=10;  A(2,2)=11; A(2,3)=12;
+    Eigen::MatrixXd A(4, 5);
+    //Eigen::Matrix<double, 3, 4> A;
+    A(0,0)=1; A(0,1)=2;  A(0,2)=3; A(0,3)=4, A(0,4)=1;
+    A(1,0)=5; A(1,1)=6;  A(1,2)=7; A(1,3)=8, A(1,4)=1;
+    A(2,0)=9; A(2,1)=10;  A(2,2)=11; A(2,3)=12, A(2,4)=1;
+    A(3,0)=9; A(3,1)=10;  A(3,2)=11; A(3,3)=12, A(3,4)=1;
     std::cout<<A<<std::endl;
-    //Eigen::Matrix<double, 3, 4> pinv=A.completeOrthogonalDecomposition.pseudoInverse();
+    Eigen::MatrixXd pinv=A.block(0,0,3,4).completeOrthogonalDecomposition().pseudoInverse();
+    //Eigen::Matrix<double, 4, 3> pinv=A.completeOrthogonalDecomposition().pseudoInverse();
+    std::cout<<pinv<<std::endl;
 }

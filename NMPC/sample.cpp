@@ -7,6 +7,7 @@
 #include "/usr/include/eigen3/Eigen/LU"
 
 int main(){
+    
     for(int i=0; i<3; ++i){
         const int num=i;
         Eigen::Matrix<double, num ,1> a;
