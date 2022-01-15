@@ -49,6 +49,8 @@ vector
 -
 /usr/include/eigen3/Eigen/LU
 -
+/usr/include/eigen3/Eigen/QR
+-
 matplotlibcpp.h
 /home/tsuruharakota/MPC/NMPC/matplotlibcpp.h
 

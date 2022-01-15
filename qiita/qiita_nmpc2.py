@@ -30,7 +30,7 @@ class SampleSystem():
         
         for i, func in enumerate(functions):
             k3[i] =  dt * func(self.x_1 + k2[0], self.x_2 + k2[1], u)
-        
+       
         self.x_1 += (k0[0] + 2. * k1[0] + 2. * k2[0] + k3[0]) / 6.
         self.x_2 += (k0[1] + 2. * k1[1] + 2. * k2[1] + k3[1]) / 6.
     
@@ -92,7 +92,6 @@ class NMPCSimulatorSystem():
 
         functions = [self.func_x_1, self.func_x_2]
 
-        print("----")
         for i, func in enumerate(functions):
             k0[i] = dt * func(x_1, x_2, u)
                 
@@ -181,27 +180,10 @@ class NMPCController_with_CGMRES():
                             self.raws, self.N, dt)
 
         # F
-        print("*x_1, *x_2")
-        print(x_1, x_2)
         self.simulator.flag_check=True
         x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1, x_2, self.us, self.N, dt)
         self.simulator.flag_check=False
-        print("x_1s")
-        print(x_1s)
-        print("x_1s_size")
-        print(len(x_1s))
-        print("x_2s")
-        print(x_2s)
-        print("x_2s_size")
-        print(len(x_2s))
-        print("lam_1s_size")
-        print(len(lam_1s))
-        print("lam_2s_size")
-        print(len(lam_2s))
-        print("lam_1s")
-        print(lam_1s)
-        print("lam_2s")
-        print(lam_2s)
+
         F = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us, self.dummy_us,
                             self.raws, self.N, dt)
         right = -self.zeta * F - ((Fxt - F) / self.ht)
@@ -218,8 +200,9 @@ class NMPCController_with_CGMRES():
 
         # calculationg cgmres
         r0 = right - left
+        print("r0")
+        print(r0)
         r0_norm = np.linalg.norm(r0)
-        
         vs = np.zeros((self.max_iteration, self.max_iteration + 1)) # 数×iterarion回数
         
         vs[:, 0] = r0 / r0_norm # 最初の基底を算出
@@ -315,6 +298,8 @@ def main():
         # make inputコロナ
         us = controller.calc_input(x_1, x_2, time)
         # update state
+        print("us[0]")
+        print(us[0])
         plant_system.update_state(us[0])
     
 if __name__ == "__main__":
