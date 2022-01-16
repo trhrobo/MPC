@@ -6,6 +6,34 @@
 
 #IncludeRegexTransform: 
 
+/home/tsuruharakota/MPC/NMPC/matplotlibcpp.h
+Python.h
+-
+vector
+-
+map
+-
+array
+-
+numeric
+-
+algorithm
+-
+stdexcept
+-
+iostream
+-
+cstdint
+-
+functional
+-
+string
+-
+numpy/arrayobject.h
+-
+opencv2/opencv.hpp
+-
+
 /home/tsuruharakota/MPC/NMPC/mpc.cpp
 iostream
 -
@@ -21,6 +49,10 @@ vector
 -
 /usr/include/eigen3/Eigen/LU
 -
+/usr/include/eigen3/Eigen/QR
+-
+matplotlibcpp.h
+/home/tsuruharakota/MPC/NMPC/matplotlibcpp.h
 
 /usr/include/eigen3/Eigen/Cholesky
 Core
