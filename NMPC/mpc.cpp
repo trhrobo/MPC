@@ -49,10 +49,10 @@ class NMPC{
         }
         void figGraph(std::vector<double> _time){
             plt::clf();
-            plt::named_plot("x1", _time, save_x1);
-            plt::named_plot("x2", _time, save_x2);
+            plt::plot(_time, save_x1);
+            //plt::plot(_time, save_x2);
             //plt::named_plot("u", _time, save_u);
-            plt::legend();
+            //plt::legend();
             plt::pause(0.01);
         }
         void updateState(Eigen::Matrix<double, u_size, 1> _U, double _dt){
@@ -251,8 +251,8 @@ class NMPC{
             }
             gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
             dU=gmres_Xm;
-            U+=dU*dt;
-            std::cout<<U.block(0, 0, u_size,1)<<std::endl;;
+            U+=dU*ht;
+            //std::cout<<U.block(0, 0, u_size,1)<<std::endl;;
             return U.block(0, 0, u_size, 1);
         }
         int count=0;
@@ -365,6 +365,6 @@ int main(){
         save_time.push_back(time);
         Eigen::Matrix<double, u_size, 1> u=nmpc.CGMRES(time);
         nmpc.updateState(u, dt);
-        //nmpc.figGraph(save_time);
+        nmpc.figGraph(save_time);
     }
 }
