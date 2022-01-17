@@ -99,7 +99,6 @@ class NMPCSimulatorSystem():
         #print("x_2", x_2, k0[1], self.func_x_2(x_2, x_1, u))
         next_x_1 = x_1 + k0[0]
         next_x_2 = x_2 + k0[1]
-        time.sleep(0.1)
             
         return next_x_1, next_x_2
 
@@ -200,8 +199,6 @@ class NMPCController_with_CGMRES():
 
         # calculationg cgmres
         r0 = right - left
-        print("r0")
-        print(r0)
         r0_norm = np.linalg.norm(r0)
         vs = np.zeros((self.max_iteration, self.max_iteration + 1)) # 数×iterarion回数
         
@@ -294,12 +291,10 @@ def main():
         time = float(i) * dt
         x_1 = plant_system.x_1
         x_2 = plant_system.x_2
-        #print(i, iteration_num, x_1, x_2)
+        print(i, iteration_num, x_1, x_2)
         # make inputコロナ
         us = controller.calc_input(x_1, x_2, time)
         # update state
-        print("us[0]")
-        print(us[0])
         plant_system.update_state(us[0])
     
 if __name__ == "__main__":
