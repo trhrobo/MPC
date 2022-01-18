@@ -163,15 +163,23 @@ class NMPC{
             double time2=get_time_sec();
             Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
             Eigen::Matrix<double, u_size*N_step, max_iteration+1> tempAv;
+            Eigen::Matrix<double, u_size*N_step, 1> tempcalAv;
             for(int i=0; i<max_iteration; ++i){
                 double timet=get_time_sec();
                 temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
+                tempcalAv=calAv(gmres_V.col(i));
+                double timeab=get_time_sec();
                 for(int k=0; k<(i+1); ++k){
-                    tempAv.col(k)=calAv(gmres_V.col(i));
+                    double timeAv_start=get_time_sec();
+                    tempAv.col(k)=tempcalAv;
+                    double timeAv_end=get_time_sec();
+                    //std::cout<<"Av"<<timeAv_end-timeAv_start<<std::endl;
                     //if(i==0)std::cout<<tempAv<<std::endl;
                     h[k][i]=tempAv.col(k).dot(gmres_V.col(k));
                     temp_sigma+=h[k][i]*gmres_V.col(k);
                 }
+                double timecd=get_time_sec();
+                std::cout<<timecd-timeab<<std::endl;
                 //if(i==0)std::cout<<temp_sigma<<std::endl;
                 double timed=get_time_sec();
                 //Eigen::Matrix<double, u_size*N_step, 1>tempAv=calAv(gmres_V.col(i));
@@ -197,7 +205,7 @@ class NMPC{
                 Rm(i, i)=c[i]*Rm(i, i)+s[i]*h[i+1][i];
                 //if(i==0)std::cout<<c[0]<<" "<<s[0]<<" "<<g[1]<<" "<<g[0]<<" "<<r[0]<<std::endl;
                 double timeb=get_time_sec();
-                std::cout<<timeq-timep<<":"<<timeb-timed<<":"<<timea-timec<<":"<<timec-timed<<std::endl;
+                //std::cout<<timeq-timep<<":"<<timeb-timed<<":"<<timea-timec<<":"<<timec-timed<<std::endl;
             }
             double time3=get_time_sec();
             Eigen::Matrix<double, max_iteration, 1> Gm=g.block(0, 0, max_iteration, 1);

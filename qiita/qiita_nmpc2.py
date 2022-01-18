@@ -203,7 +203,7 @@ class NMPCController_with_CGMRES():
         r0_norm = np.linalg.norm(r0)
         time_end=time.time() 
         time_diff=time_end-time_start
-        print(time_diff)
+        #print(time_diff)
         vs = np.zeros((self.max_iteration, self.max_iteration + 1)) # 数×iterarion回数
         
         vs[:, 0] = r0 / r0_norm # 最初の基底を算出
@@ -225,7 +225,9 @@ class NMPCController_with_CGMRES():
 
             Av = (( Fuxt - Fxt) / self.ht)
             time_Av_end=time.time()
-            print(time_Av_end - time_Av_start)
+            time_Av_diff=time_Av_end - time_Av_start
+            #print("Av")
+            #print(time_Av_diff)
             sum_Av = np.zeros(self.max_iteration)
 
             for j in range(i + 1): # グラムシュミットの直交化法です、和を取って差分を取って算出します
@@ -247,7 +249,7 @@ class NMPCController_with_CGMRES():
                 du_new = du + update_value[::3]
                 ddummy_u_new = ddummy_u + update_value[1::3]
                 draw_new = draw + update_value[2::3]
-                print(i)
+                #print(i)
                 break
 
             ys_pre = ys
@@ -303,11 +305,11 @@ def main():
         x_1 = plant_system.x_1
         x_2 = plant_system.x_2
         # make inputコロナ
-        #time_start=time.time()
+        time_start=time.time()
         us = controller.calc_input(x_1, x_2, timer)
-        #time_end=time.time()
-        #time_diff = time_end - time_start
-        #print(i, time_diff)
+        time_end=time.time()
+        time_diff = time_end - time_start
+        print(i, time_diff)
         # update state
         plant_system.update_state(us[0])
     
