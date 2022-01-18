@@ -11,10 +11,6 @@
 using namespace std::chrono;
 namespace plt = matplotlibcpp;
 
-/*
-非線形最適制御入門(例8.1)
-*/
-
 /*各種定数設定*/
 //目標値に対する誤差
 constexpr double threshold=0.001;
