@@ -520,33 +520,6 @@ ExperimentalBuild/fast:
 	$(MAKE) -f CMakeFiles/ExperimentalBuild.dir/build.make CMakeFiles/ExperimentalBuild.dir/build
 .PHONY : ExperimentalBuild/fast
 
-NMPC/mpc.o: NMPC/mpc.cpp.o
-
-.PHONY : NMPC/mpc.o
-
-# target to build an object file
-NMPC/mpc.cpp.o:
-	$(MAKE) -f CMakeFiles/NMPC.dir/build.make CMakeFiles/NMPC.dir/NMPC/mpc.cpp.o
-.PHONY : NMPC/mpc.cpp.o
-
-NMPC/mpc.i: NMPC/mpc.cpp.i
-
-.PHONY : NMPC/mpc.i
-
-# target to preprocess a source file
-NMPC/mpc.cpp.i:
-	$(MAKE) -f CMakeFiles/NMPC.dir/build.make CMakeFiles/NMPC.dir/NMPC/mpc.cpp.i
-.PHONY : NMPC/mpc.cpp.i
-
-NMPC/mpc.s: NMPC/mpc.cpp.s
-
-.PHONY : NMPC/mpc.s
-
-# target to generate assembly for a file
-NMPC/mpc.cpp.s:
-	$(MAKE) -f CMakeFiles/NMPC.dir/build.make CMakeFiles/NMPC.dir/NMPC/mpc.cpp.s
-.PHONY : NMPC/mpc.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -587,9 +560,6 @@ help:
 	@echo "... ContinuousTest"
 	@echo "... ContinuousUpdate"
 	@echo "... ExperimentalBuild"
-	@echo "... NMPC/mpc.o"
-	@echo "... NMPC/mpc.i"
-	@echo "... NMPC/mpc.s"
 .PHONY : help
 
 

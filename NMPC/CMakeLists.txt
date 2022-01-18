@@ -8,5 +8,5 @@ find_package(PythonLibs 2.7 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories( ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
 
-add_executable(mpc mpc.cpp)
-target_link_libraries(mpc ${PYTHON_LIBRARIES})
+add_executable(nmpc nmpc.cpp)
+target_link_libraries(nmpc ${PYTHON_LIBRARIES})

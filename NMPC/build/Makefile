@@ -111,44 +111,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named mpc
+# Target rules for targets named nmpc
 
 # Build rule for target.
-mpc: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 mpc
-.PHONY : mpc
+nmpc: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nmpc
+.PHONY : nmpc
 
 # fast build rule for target.
-mpc/fast:
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/build
-.PHONY : mpc/fast
+nmpc/fast:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/build
+.PHONY : nmpc/fast
 
-mpc.o: mpc.cpp.o
+nmpc.o: nmpc.cpp.o
 
-.PHONY : mpc.o
+.PHONY : nmpc.o
 
 # target to build an object file
-mpc.cpp.o:
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/mpc.cpp.o
-.PHONY : mpc.cpp.o
+nmpc.cpp.o:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/nmpc.cpp.o
+.PHONY : nmpc.cpp.o
 
-mpc.i: mpc.cpp.i
+nmpc.i: nmpc.cpp.i
 
-.PHONY : mpc.i
+.PHONY : nmpc.i
 
 # target to preprocess a source file
-mpc.cpp.i:
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/mpc.cpp.i
-.PHONY : mpc.cpp.i
+nmpc.cpp.i:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/nmpc.cpp.i
+.PHONY : nmpc.cpp.i
 
-mpc.s: mpc.cpp.s
+nmpc.s: nmpc.cpp.s
 
-.PHONY : mpc.s
+.PHONY : nmpc.s
 
 # target to generate assembly for a file
-mpc.cpp.s:
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/mpc.cpp.s
-.PHONY : mpc.cpp.s
+nmpc.cpp.s:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/nmpc.cpp.s
+.PHONY : nmpc.cpp.s
 
 # Help Target
 help:
@@ -157,11 +157,11 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... mpc"
+	@echo "... nmpc"
 	@echo "... edit_cache"
-	@echo "... mpc.o"
-	@echo "... mpc.i"
-	@echo "... mpc.s"
+	@echo "... nmpc.o"
+	@echo "... nmpc.i"
+	@echo "... nmpc.s"
 .PHONY : help
 
 

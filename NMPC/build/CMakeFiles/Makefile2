@@ -60,39 +60,39 @@ CMAKE_SOURCE_DIR = /home/tsuruharakota/MPC/NMPC
 CMAKE_BINARY_DIR = /home/tsuruharakota/MPC/NMPC/build
 
 #=============================================================================
-# Target rules for target CMakeFiles/mpc.dir
+# Target rules for target CMakeFiles/nmpc.dir
 
 # All Build rule for target.
-CMakeFiles/mpc.dir/all:
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/depend
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/tsuruharakota/MPC/NMPC/build/CMakeFiles --progress-num=1,2 "Built target mpc"
-.PHONY : CMakeFiles/mpc.dir/all
+CMakeFiles/nmpc.dir/all:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/depend
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/tsuruharakota/MPC/NMPC/build/CMakeFiles --progress-num=1,2 "Built target nmpc"
+.PHONY : CMakeFiles/nmpc.dir/all
 
 # Include target in all.
-all: CMakeFiles/mpc.dir/all
+all: CMakeFiles/nmpc.dir/all
 
 .PHONY : all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/mpc.dir/rule: cmake_check_build_system
+CMakeFiles/nmpc.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/tsuruharakota/MPC/NMPC/build/CMakeFiles 2
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/mpc.dir/all
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/nmpc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/tsuruharakota/MPC/NMPC/build/CMakeFiles 0
-.PHONY : CMakeFiles/mpc.dir/rule
+.PHONY : CMakeFiles/nmpc.dir/rule
 
 # Convenience name for target.
-mpc: CMakeFiles/mpc.dir/rule
+nmpc: CMakeFiles/nmpc.dir/rule
 
-.PHONY : mpc
-
-# clean rule for target.
-CMakeFiles/mpc.dir/clean:
-	$(MAKE) -f CMakeFiles/mpc.dir/build.make CMakeFiles/mpc.dir/clean
-.PHONY : CMakeFiles/mpc.dir/clean
+.PHONY : nmpc
 
 # clean rule for target.
-clean: CMakeFiles/mpc.dir/clean
+CMakeFiles/nmpc.dir/clean:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/clean
+.PHONY : CMakeFiles/nmpc.dir/clean
+
+# clean rule for target.
+clean: CMakeFiles/nmpc.dir/clean
 
 .PHONY : clean
 
