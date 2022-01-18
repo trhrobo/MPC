@@ -179,7 +179,7 @@ class NMPC{
                     temp_sigma+=h[k][i]*gmres_V.col(k);
                 }
                 double timecd=get_time_sec();
-                std::cout<<timecd-timeab<<std::endl;
+                //std::cout<<timecd-timeab<<std::endl;
                 //if(i==0)std::cout<<temp_sigma<<std::endl;
                 double timed=get_time_sec();
                 //Eigen::Matrix<double, u_size*N_step, 1>tempAv=calAv(gmres_V.col(i));
@@ -223,7 +223,7 @@ class NMPC{
             dU=gmres_Xm;
             U+=dU*ht;
             //std::cout<<U.block(0, 0, u_size,1)<<std::endl;;
-            std::cout<<time3-time2<<std::endl;
+            //std::cout<<time3-time2<<std::endl;
             return U.block(0, 0, u_size, 1);
         }
         Eigen::Matrix<double, f_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x){
@@ -321,8 +321,11 @@ int main(){
         double start=nmpc.get_time_sec();
         Eigen::Matrix<double, u_size, 1> u=nmpc.CGMRES(time);
         double end=nmpc.get_time_sec();
-        //std::cout<<i<<":"<<end-start<<std::endl;
+        std::cout<<i<<":"<<end-start<<std::endl;
         nmpc.updateState(u, dt);
+        //nmpc.figGraph(save_time);
+    }
+    while(1){
         nmpc.figGraph(save_time);
     }
 }
