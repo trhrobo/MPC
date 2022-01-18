@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named nmpc
+
+# Build rule for target.
+nmpc: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nmpc
+.PHONY : nmpc
+
+# fast build rule for target.
+nmpc/fast:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/build
+.PHONY : nmpc/fast
+
+#=============================================================================
 # Target rules for targets named nmpc_two_wheel
 
 # Build rule for target.
@@ -122,6 +135,33 @@ nmpc_two_wheel: cmake_check_build_system
 nmpc_two_wheel/fast:
 	$(MAKE) -f CMakeFiles/nmpc_two_wheel.dir/build.make CMakeFiles/nmpc_two_wheel.dir/build
 .PHONY : nmpc_two_wheel/fast
+
+nmpc.o: nmpc.cpp.o
+
+.PHONY : nmpc.o
+
+# target to build an object file
+nmpc.cpp.o:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/nmpc.cpp.o
+.PHONY : nmpc.cpp.o
+
+nmpc.i: nmpc.cpp.i
+
+.PHONY : nmpc.i
+
+# target to preprocess a source file
+nmpc.cpp.i:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/nmpc.cpp.i
+.PHONY : nmpc.cpp.i
+
+nmpc.s: nmpc.cpp.s
+
+.PHONY : nmpc.s
+
+# target to generate assembly for a file
+nmpc.cpp.s:
+	$(MAKE) -f CMakeFiles/nmpc.dir/build.make CMakeFiles/nmpc.dir/nmpc.cpp.s
+.PHONY : nmpc.cpp.s
 
 nmpc_two_wheel.o: nmpc_two_wheel.cpp.o
 
@@ -157,8 +197,12 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... nmpc_two_wheel"
 	@echo "... edit_cache"
+	@echo "... nmpc"
+	@echo "... nmpc_two_wheel"
+	@echo "... nmpc.o"
+	@echo "... nmpc.i"
+	@echo "... nmpc.s"
 	@echo "... nmpc_two_wheel.o"
 	@echo "... nmpc_two_wheel.i"
 	@echo "... nmpc_two_wheel.s"

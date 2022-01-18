@@ -254,7 +254,7 @@ class NMPC{
                 double rho_2=_U((i*u_size+5), 0);
                 double x_3=X_((i*x_size+2), 0);
                 F((i*f_size),   0)=u_1+lam_1*std::cos(x_3)+lam_2*std::sin(x_3)+2*rho_1*u_1;
-                F((i*f_size)+1, 0)=u_2*lam_3+2*rho_2*u_2;
+                F((i*f_size)+1, 0)=u_2+lam_3+2*rho_2*u_2;
                 F((i*f_size)+2, 0)=-0.01+2*rho_1*v_1;
                 F((i*f_size)+3, 0)=-0.01+2*rho_2*v_2;
                 F((i*f_size)+4, 0)=u_1*u_1+v_1*v_1-1*1;
@@ -285,7 +285,7 @@ class NMPC{
 };
 int main(){
     constexpr double dt=0.01;
-    constexpr int iteration_time=20;
+    constexpr int iteration_time=30;
     constexpr int iteration_num=iteration_time/dt;
     //現在の状態
     //x={x1, x2}

@@ -51,8 +51,8 @@ class NMPC{
         }
         void figGraph(std::vector<double> _time){
             plt::clf();
-            plt::plot(_time, save_x1);
-            //plt::plot(_time, save_x2);
+            //plt::plot(_time, save_x1);
+            plt::plot(_time, save_x2);
             //plt::named_plot("u", _time, save_u);
             //plt::legend();
             plt::pause(0.01);

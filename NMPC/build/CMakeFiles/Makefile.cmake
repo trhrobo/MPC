@@ -47,5 +47,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "CMakeFiles/nmpc.dir/DependInfo.cmake"
   "CMakeFiles/nmpc_two_wheel.dir/DependInfo.cmake"
   )
