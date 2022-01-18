@@ -1,12 +1,14 @@
 #include<iostream>
 #include<cmath>
 #include<vector>
+#include<chrono>
 #include "/usr/include/eigen3/Eigen/Dense"
 #include "/usr/include/eigen3/Eigen/Sparse"
 #include "/usr/include/eigen3/Eigen/Core"
 #include "/usr/include/eigen3/Eigen/LU"
 #include "/usr/include/eigen3/Eigen/QR"
 #include "matplotlibcpp.h"
+using namespace std::chrono;
 namespace plt = matplotlibcpp;
 
 /*
@@ -134,6 +136,7 @@ class NMPC{
             return ans;
         }
         Eigen::Matrix<double, u_size, 1> CGMRES(double _time){
+            double time1=get_time_sec();
             dt=tf*(1-std::exp(-alpha*_time))/N_step;
             //gmres法を用いてdUを求める
             Eigen::Matrix<double, max_iteration, 1> dU=Eigen::MatrixXd::Zero(max_iteration, 1);
@@ -146,7 +149,9 @@ class NMPC{
             //gmres_X0を設定する
             gmres_X0=U;
             //初期残差gmres_R0を求める
+            double timep=get_time_sec();
             gmres_R0=calR0();
+            double timeq=get_time_sec();
             //std::cout<<calF(U, X)<<std::endl;
             gmres_V.col(0)=gmres_R0.normalized();
             Eigen::Matrix<double, max_iteration+1, 1> g;
@@ -155,18 +160,24 @@ class NMPC{
             Eigen::Matrix<double, max_iteration, max_iteration> Rm;
             double c[max_iteration]{};
             double s[max_iteration]{}; 
+            double time2=get_time_sec();
+            Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
+            Eigen::Matrix<double, u_size*N_step, max_iteration+1> tempAv;
             for(int i=0; i<max_iteration; ++i){
+                double timet=get_time_sec();
+                temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
                 for(int k=0; k<(i+1); ++k){
-                    Eigen::Matrix<double, u_size*N_step, 1> tempAv=calAv(gmres_V.col(i));
+                    tempAv.col(k)=calAv(gmres_V.col(i));
                     //if(i==0)std::cout<<tempAv<<std::endl;
-                    h[k][i]=tempAv.dot(gmres_V.col(k));
-                }
-                Eigen::Matrix<double, u_size*N_step, 1> temp_sigma=Eigen::MatrixXd::Zero(u_size*N_step, 1);
-                for(int k=0; k<(i+1); k++){
+                    h[k][i]=tempAv.col(k).dot(gmres_V.col(k));
                     temp_sigma+=h[k][i]*gmres_V.col(k);
                 }
                 //if(i==0)std::cout<<temp_sigma<<std::endl;
-                Eigen::Matrix<double, u_size*N_step, 1>temp_V=calAv(gmres_V.col(i))-temp_sigma;
+                double timed=get_time_sec();
+                //Eigen::Matrix<double, u_size*N_step, 1>tempAv=calAv(gmres_V.col(i));
+                double timec=get_time_sec();
+                Eigen::Matrix<double, u_size*N_step, 1>temp_V=tempAv.col(i)-temp_sigma;
+                double timea=get_time_sec();
                 //if(i==0)std::cout<<temp_V<<std::endl;
                 h[i+1][i]=temp_V.norm();
                 //if(i==0)std::cout<<h[1][0]<<std::endl;
@@ -185,7 +196,10 @@ class NMPC{
                 g(i, 0)=c[i]*g(i, 0);
                 Rm(i, i)=c[i]*Rm(i, i)+s[i]*h[i+1][i];
                 //if(i==0)std::cout<<c[0]<<" "<<s[0]<<" "<<g[1]<<" "<<g[0]<<" "<<r[0]<<std::endl;
+                double timeb=get_time_sec();
+                std::cout<<timeq-timep<<":"<<timeb-timed<<":"<<timea-timec<<":"<<timec-timed<<std::endl;
             }
+            double time3=get_time_sec();
             Eigen::Matrix<double, max_iteration, 1> Gm=g.block(0, 0, max_iteration, 1);
             gmres_Vm=gmres_V.block(0, 0, max_iteration, max_iteration);
             //後退代入によってRm*Ym=Gmを解く
@@ -196,13 +210,16 @@ class NMPC{
                 }
                 gmres_Ym[i]=(Gm[i]-temp_sigma_back)/Rm(i, i);
             }
+            double time4=get_time_sec();
             gmres_Xm=gmres_X0+gmres_Vm*gmres_Ym;
             dU=gmres_Xm;
             U+=dU*ht;
             //std::cout<<U.block(0, 0, u_size,1)<<std::endl;;
+            std::cout<<time3-time2<<std::endl;
             return U.block(0, 0, u_size, 1);
         }
         Eigen::Matrix<double, f_size*N_step, 1> calF(Eigen::Matrix<double, u_size*N_step, 1> _U, Eigen::Matrix<double, x_size, 1> _x){
+            double timef1=get_time_sec();
             Eigen::Matrix<double, f_size*N_step, 1> F;
             //制約なし
             //0~Nまでx1, x2
@@ -213,25 +230,28 @@ class NMPC{
             //x0*(t)=x(t)を計算する
             X_.block(0, 0, x_size, 1)=_x;
             //xi+1*=xi*+f(xi*,ui*,t+i*dtau)*dtauを計算する
+            double timef2=get_time_sec();
             Eigen::Matrix<double, x_size, 1> prev_X_=_x;
             for(int i=1; i < (N_step+1); i++){
                 X_.block(x_size*i, 0, x_size, 1)=prev_X_+calModel(prev_X_, _U.block(u_size*(i-1), 0, u_size, 1))*dt;
                 prev_X_=X_.block(x_size*i, 0, x_size, 1);
             }
+            double timef3=get_time_sec();
             //4
             //lamda_(lamda*)を求める
             //lamdaN*=(rphi/rx)^T(xN*,t+T)を計算する
-            Eigen::Matrix<double, 1, x_size> temp_rphirx=rphirx(X_.block(x_size*((N_step+1)-1), 0, x_size, 1));
-            Lamda_.block(x_size*(N_step-1), 0, x_size, 1)=temp_rphirx.transpose();
+            Lamda_.block(x_size*(N_step-1), 0, x_size, 1)=rphirx(X_.block(x_size*((N_step+1)-1), 0, x_size, 1)).transpose();
             //lamdai*=lamdai+1*+(rH/ru)^T*dtau
             Eigen::Matrix<double, x_size, 1> prev_Lamda_=Lamda_.block(x_size*(N_step-1), 0, x_size, 1);
             //逆順で解く
             //N_step-2の理由(N_step-1で最後のLamdaのグループなので(上でそこは計算してる),それの前だからN-2)
+            double timef4=get_time_sec();
             for(int i=(N_step-2); i >= 0; --i){
-                Eigen::Matrix<double, 1, x_size> temp_rHrx=rHrx(X_.block(x_size*i, 0, x_size, 1), _U.block(u_size*i, 0, u_size, 1), prev_Lamda_);
-                Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+temp_rHrx.transpose()*dt;
+                Lamda_.block(x_size*i, 0, x_size, 1)=prev_Lamda_+rHrx(X_.block(x_size*i, 0, x_size, 1), _U.block(u_size*i, 0, u_size, 1), prev_Lamda_).transpose()*dt;
                 prev_Lamda_=Lamda_.block(x_size*i, 0, x_size, 1);
             }
+            double timef5=get_time_sec();
+            //Fを求める
             for(int i=0; i<N_step; i++){
                 double lam_2=Lamda_((i*x_size)+1, 0);
                 double u=_U(i*u_size, 0);
@@ -241,20 +261,32 @@ class NMPC{
                 F((i*f_size)+1, 0)=-0.01+2.0*rho*v;
                 F((i*f_size)+2, 0)=u*u+v*v-0.5*0.5;
             }
+            double timef6=get_time_sec();
+            //std::cout<<timef2-timef1<<":"<<timef3-timef2<<":"<<timef4-timef3<<":"<<timef5-timef4<<timef6-timef5<<":"<<timef6-timef1<<std::endl;
             return F;
         }   
         Eigen::Matrix<double, u_size*N_step, 1> calAv(Eigen::Matrix<double, u_size*N_step, 1> _V){
+            double timeAv1=get_time_sec();
             Eigen::Matrix<double, u_size, 1> U0= U.block(0, 0, u_size,1);
             Eigen::Matrix<double, u_size*N_step, 1> Av=(calF(U+(_V*ht), X+calModel(X, U0)*ht)-calF(U, X+calModel(X, U0)*ht))/ht;
+            double timeAv2=get_time_sec();
+            //std::cout<<timeAv2-timeAv1<<std::endl;
             return Av;
         }
         Eigen::Matrix<double, u_size*N_step, 1> calR0(){
             //U'(0)=U0を使用する
+            double timecalr1=get_time_sec();
             Eigen::Matrix<double, x_size, 1> dX=calModel(X, U.block(0, 0, u_size,1))*ht;
+            double timecalr2=get_time_sec();
             Eigen::Matrix<double, u_size*N_step, 1> R0=-1*zeta*calF(U, X)-(calF(U, X+dX)-calF(U, X))/ht-(calF(U+U*ht, X+dX)-calF(U, X+dX))/ht;
+            double timecalr3=get_time_sec();
+            //std::cout<<"calR0:"<<timecalr2-timecalr1<<":"<<timecalr3-timecalr2<<std::endl;
             return R0;
         }
         Eigen::Matrix<double, x_size, 1> X=Eigen::MatrixXd::Zero(x_size, 1);
+        inline double get_time_sec(void){
+            return static_cast<double>(duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count())/1000000000;
+        }
     private:
         //Eigen::Matrix<double, x_size, 1> X=Eigen::MatrixXd::Zero(x_size, 1);
         Eigen::Matrix<double, u_size*N_step, 1> U=Eigen::MatrixXd::Zero(u_size*N_step, 1);
@@ -278,9 +310,11 @@ int main(){
     for(int i=1; i<iteration_num; ++i){
         double time=i*dt;
         save_time.push_back(time);
+        double start=nmpc.get_time_sec();
         Eigen::Matrix<double, u_size, 1> u=nmpc.CGMRES(time);
+        double end=nmpc.get_time_sec();
+        //std::cout<<i<<":"<<end-start<<std::endl;
         nmpc.updateState(u, dt);
-        std::cout<<i<<std::endl;
         nmpc.figGraph(save_time);
     }
 }

@@ -1,3 +1,4 @@
+from threading import Timer
 import numpy as np
 import matplotlib.pyplot as plt
 import math
@@ -162,16 +163,16 @@ class NMPCController_with_CGMRES():
         self.history_dummy_u = []
         self.history_raw = []
         self.history_f = []
-    def calc_input(self, x_1, x_2, time):
+    def calc_input(self, x_1, x_2, _time):
+        time_start=time.time()
         # calculating sampling time
-        dt = self.tf * (1. - np.exp(-self.alpha * time)) / float(self.N)
+        dt = self.tf * (1. - np.exp(-self.alpha * _time)) / float(self.N)
         # x_dot
         x_1_dot = self.simulator.func_x_1(x_1, x_2, self.us[0])
         x_2_dot = self.simulator.func_x_2(x_1, x_2, self.us[0])
 
         dx_1 = x_1_dot * self.ht
         dx_2 = x_2_dot * self.ht
-
         x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1 + dx_1, x_2 + dx_2, self.us, self.N, dt)
         
         # Fxt
@@ -200,6 +201,9 @@ class NMPCController_with_CGMRES():
         # calculationg cgmres
         r0 = right - left
         r0_norm = np.linalg.norm(r0)
+        time_end=time.time() 
+        time_diff=time_end-time_start
+        print(time_diff)
         vs = np.zeros((self.max_iteration, self.max_iteration + 1)) # 数×iterarion回数
         
         vs[:, 0] = r0 / r0_norm # 最初の基底を算出
@@ -213,14 +217,15 @@ class NMPCController_with_CGMRES():
             du = vs[::3, i] * self.ht
             ddummy_u = vs[1::3, i] * self.ht
             draw = vs[2::3, i] * self.ht
-
+            time_Av_start=time.time()
             x_1s, x_2s, lam_1s, lam_2s = self.simulator.calc_predict_and_adjoint_state(x_1 + dx_1, x_2 + dx_2, self.us + du, self.N, dt)
 
             Fuxt = self._calc_f(x_1s, x_2s, lam_1s, lam_2s, self.us + du, self.dummy_us + ddummy_u,
                            self.raws + draw, self.N, dt)
 
             Av = (( Fuxt - Fxt) / self.ht)
-
+            time_Av_end=time.time()
+            print(time_Av_end - time_Av_start)
             sum_Av = np.zeros(self.max_iteration)
 
             for j in range(i + 1): # グラムシュミットの直交化法です、和を取って差分を取って算出します
@@ -242,6 +247,7 @@ class NMPCController_with_CGMRES():
                 du_new = du + update_value[::3]
                 ddummy_u_new = ddummy_u + update_value[1::3]
                 draw_new = draw + update_value[2::3]
+                print(i)
                 break
 
             ys_pre = ys
@@ -273,6 +279,11 @@ class NMPCController_with_CGMRES():
             F.append(us[i]**2 + dummy_us[i]**2 - 0.5**2)
         
         return np.array(F)
+    
+    def timer():
+        val= time.time()
+        return val 
+
 
 def main():
     # simulation time
@@ -288,12 +299,15 @@ def main():
 
     # for i in range(iteration_num)
     for i in range(1, iteration_num):
-        time = float(i) * dt
+        timer = float(i) * dt
         x_1 = plant_system.x_1
         x_2 = plant_system.x_2
-        print(i, iteration_num, x_1, x_2)
         # make inputコロナ
-        us = controller.calc_input(x_1, x_2, time)
+        #time_start=time.time()
+        us = controller.calc_input(x_1, x_2, timer)
+        #time_end=time.time()
+        #time_diff = time_end - time_start
+        #print(i, time_diff)
         # update state
         plant_system.update_state(us[0])
     
