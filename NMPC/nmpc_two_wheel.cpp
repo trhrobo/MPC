@@ -44,9 +44,12 @@ class NMPC{
         NMPC(Eigen::Matrix<double, x_size, 1> _X){
             X=_X;
             for(int i=0; i<N_step; ++i){
-                U(u_size*i, 0)=0;
-                U((u_size*i)+1, 0)=0.49;
-                U((u_size*i)+2, 0)=0.011;
+                U(u_size*i, 0)=1.0;
+                U((u_size*i)+1, 0)=0.1;
+                U((u_size*i)+2, 0)=0.1;
+                U((u_size*i)+3, 0)=2.5;
+                U((u_size*i)+4, 0)=0.8;
+                U((u_size*i)+5, 0)=0.8;
             }
         }
         void figGraph(std::vector<double> _time){
@@ -59,7 +62,7 @@ class NMPC{
         }
         void updateState(Eigen::Matrix<double, u_size, 1> _U, double _dt){
             //状態Xを更新する
-            double k0[2]{};
+            /*double k0[2]{};
             double k1[2]{};
             double k2[2]{};
             double k3[2]{};
@@ -85,7 +88,19 @@ class NMPC{
             x1+=(k0[0]+2*k1[0]+2*k2[0]+k3[0])/6;
             x2+=(k0[1]+2*k1[1]+2*k2[1]+k3[1])/6;
             X(0, 0)=x1;
-            X(1, 0)=x2;
+            X(1, 0)=x2;*/
+            X+=calModel(X, _U.block(0, 0, u_size, 1))*_dt;
+            double x1=X(0, 0);
+            double x2=X(1, 0);
+            double x3=X(2, 0);
+            double u1=_U(0, 0);
+            double u2=_U(1, 0);
+            save_x1.push_back(x1);
+            save_x2.push_back(x2);
+            save_x3.push_back(x3);
+            save_u1.push_back(u1);
+            save_u2.push_back(u2);
+            std::cout<<x1<<" "<<x2<<" "<<x3<<std::endl;
         }
         double Func(double _x1, double _x2, double _u, double i){
             double ans{};
@@ -108,10 +123,13 @@ class NMPC{
             Eigen::Matrix<double, x_size, 1> model_F;
             double x1=_X(0, 0);
             double x2=_X(1, 0);
+            double x3=_X(2, 0);
             //U={u, v, rho}
-            double u=_U(0, 0);
-            model_F << x2,
-                       ((1-x1*x1-x2*x2)*x2-x1+u);
+            double u1=_U(0, 0);
+            double u2=_U(1, 0);
+            model_F << std::cos(x3)*u1,
+                       std::sin(x3)*u1,
+                       u2;
             return model_F;
         }
         Eigen::Matrix<double, 1, x_size> rphirx(Eigen::Matrix<double, x_size, 1> _X){
@@ -121,6 +139,8 @@ class NMPC{
         Eigen::Matrix<double, 1, x_size> rHrx(Eigen::Matrix<double, x_size, 1> _x_,Eigen::Matrix<double, u_size, 1> _u, Eigen::Matrix<double, x_size, 1> _lamda_){
             double x1=_x_(0, 0);
             double x2=_x_(1, 0);
+            double x3=_x_(2, 0);
+            double u1=_u(0, 0);
             double lamda1=_lamda_(0, 0);
             double lamda2=_lamda_(1, 0);
             Eigen::Matrix<double, 1, x_size> ans;
@@ -259,7 +279,9 @@ class NMPC{
         double dt;
         std::vector<double> save_x1;
         std::vector<double> save_x2;
-        std::vector<double> save_u;
+        std::vector<double> save_x3;
+        std::vector<double> save_u1;
+        std::vector<double> save_u2;
 };
 int main(){
     constexpr double dt=0.01;
@@ -267,10 +289,11 @@ int main(){
     constexpr int iteration_num=iteration_time/dt;
     //現在の状態
     //x={x1, x2}
-    Eigen::Matrix<double, 2, 1> initX;
+    Eigen::Matrix<double, x_size, 1> initX;
     //X(0)を測定する(初期値を代入する)
     initX << x1,
-             x2;
+             x2,
+             x3;
     NMPC nmpc(initX);
     std::vector<double> save_time;
     for(int i=1; i<iteration_num; ++i){
@@ -279,6 +302,7 @@ int main(){
         Eigen::Matrix<double, u_size, 1> u=nmpc.CGMRES(time);
         nmpc.updateState(u, dt);
         std::cout<<i<<std::endl;
+        //std::cout<<u<<std::endl;
     }
     while(1){
         nmpc.figGraph(save_time);
